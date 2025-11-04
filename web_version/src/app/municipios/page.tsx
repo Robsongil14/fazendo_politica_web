@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, ReactNode } from 'react'
 import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
 import { Search, MapPin, User, Users, Loader2 } from 'lucide-react'
@@ -36,7 +36,7 @@ export default function MunicipiosPage() {
   useEffect(() => {
     if (searchTerm) {
       const filtered = municipios.filter(municipio =>
-        municipio.municipio.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        municipio.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (municipio.prefeito && municipio.prefeito.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (municipio.partido && municipio.partido.toLowerCase().includes(searchTerm.toLowerCase()))
       )
@@ -150,7 +150,7 @@ export default function MunicipiosPage() {
                         className="text-lg font-bold mb-1"
                         style={{ color: TEXT_COLOR_LIGHT }}
                       >
-                        {municipio.municipio}
+                        {municipio.nome}
                       </h3>
                       
                       {municipio.prefeito && (
