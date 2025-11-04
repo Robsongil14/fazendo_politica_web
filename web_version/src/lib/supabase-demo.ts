@@ -177,7 +177,11 @@ export const signOut = async () => {
   return supabase.auth.signOut();
 };
 
-export const getCurrentUser = async () => {
+import { User } from '@supabase/supabase-js';
+export const getCurrentUser = async (): Promise<User | null> => {
   const { data } = await supabase.auth.getSession();
-  return data.session?.user || null;
+  if (data.session && data.session.user) {
+    return data.session.user;
+  }
+  return null;
 };
