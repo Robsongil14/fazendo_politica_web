@@ -36,7 +36,7 @@ export default function MunicipiosPage() {
   useEffect(() => {
     if (searchTerm) {
       const filtered = municipios.filter(municipio =>
-        municipio.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        municipio.nome?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (municipio.prefeito && municipio.prefeito.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (municipio.partido && municipio.partido.toLowerCase().includes(searchTerm.toLowerCase()))
       )
@@ -45,6 +45,11 @@ export default function MunicipiosPage() {
       setFilteredMunicipios(municipios)
     }
   }, [searchTerm, municipios])
+
+  // Adiciona log para depuração
+  useEffect(() => {
+    console.log('Municípios carregados:', municipios)
+  }, [municipios])
 
   const fetchMunicipios = async () => {
     try {
@@ -144,58 +149,33 @@ export default function MunicipiosPage() {
                   className="p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow"
                   style={{ backgroundColor: CARD_BG_COLOR }}
                 >
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <h3 
-                        className="text-lg font-bold mb-1"
-                        style={{ color: TEXT_COLOR_LIGHT }}
-                      >
-                        {municipio.nome}
-                      </h3>
-                      
-                      {municipio.prefeito && (
-                        <div className="flex items-center mb-1">
-                          <User className="w-4 h-4 mr-2" style={{ color: TEXT_COLOR_DARK }} />
-                          <span 
-                            className="text-sm"
-                            style={{ color: TEXT_COLOR_DARK }}
-                          >
-                            Prefeito: {municipio.prefeito}
-                          </span>
-                        </div>
-                      )}
-                      
+                  <div className="flex flex-col">
+                    <h3
+                      className="text-xl font-bold text-blue-700"
+                      style={{ color: PSD_BLUE }}
+                    >
+                      {municipio.municipio ? municipio.municipio : '(Sem nome)'}
+                    </h3>
+                    <div className="flex items-center justify-between mt-1">
+                      <span className="text-base text-gray-800">
+                        Prefeito: {municipio.prefeito ? municipio.prefeito : 'N/A'}
+                      </span>
                       {municipio.partido && (
-                        <div className="flex items-center mb-1">
-                          <div 
-                            className="w-4 h-4 rounded mr-2"
-                            style={{ backgroundColor: PSD_BLUE }}
-                          />
-                          <span 
-                            className="text-sm font-medium"
-                            style={{ color: PSD_BLUE }}
-                          >
-                            {municipio.partido}
-                          </span>
-                        </div>
-                      )}
-                      
-                      {municipio.populacao && (
-                        <div className="flex items-center">
-                          <Users className="w-4 h-4 mr-2" style={{ color: TEXT_COLOR_DARK }} />
-                          <span 
-                            className="text-sm"
-                            style={{ color: TEXT_COLOR_DARK }}
-                          >
-                            {municipio.populacao.toLocaleString()} habitantes
-                          </span>
-                        </div>
+                        <span className="text-base font-bold text-gray-800">
+                          Partido: {municipio.partido}
+                        </span>
                       )}
                     </div>
-                    
-                    <div className="ml-4">
-                      <MapPin className="w-6 h-6" style={{ color: PSD_GREEN }} />
-                    </div>
+                    {municipio.populacao && (
+                      <div className="mt-1 text-sm text-gray-600">
+                        População: {municipio.populacao.toLocaleString('pt-BR')}
+                      </div>
+                    )}
+                    {municipio.regiao && (
+                      <div className="mt-1 text-sm text-gray-600">
+                        Região: {municipio.regiao}
+                      </div>
+                    )}
                   </div>
                 </div>
               </Link>
