@@ -14,6 +14,7 @@ const TEXT_COLOR_DARK = '#666666'
 const CARD_BG_COLOR = '#FFFFFF'
 
 interface Municipio {
+  municipio: any
   id: string
   nome: string
   prefeito?: string
@@ -36,7 +37,7 @@ export default function MunicipiosPage() {
   useEffect(() => {
     if (searchTerm) {
       const filtered = municipios.filter(municipio =>
-        municipio.nome?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        municipio.municipio?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (municipio.prefeito && municipio.prefeito.toLowerCase().includes(searchTerm.toLowerCase())) ||
         (municipio.partido && municipio.partido.toLowerCase().includes(searchTerm.toLowerCase()))
       )
