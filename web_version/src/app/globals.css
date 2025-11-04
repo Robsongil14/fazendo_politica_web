@@ -1,0 +1,58 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+  
+  body {
+    @apply bg-gray-50 text-text-dark;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply bg-psd-yellow text-text-dark font-bold py-3 px-6 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105;
+  }
+  
+  .btn-secondary {
+    @apply bg-psd-blue text-text-light font-bold py-3 px-6 rounded-lg shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-105;
+  }
+  
+  .input-field {
+    @apply w-full px-4 py-3 rounded-lg border border-gray-300 focus:border-psd-blue focus:ring-2 focus:ring-psd-blue/20 outline-none transition-all duration-200;
+  }
+  
+  .card {
+    @apply bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow duration-200;
+  }
+  
+  .container-responsive {
+    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+}
+
+/* Animações customizadas */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.6s ease-out;
+}
+
+/* Responsividade para dispositivos muito pequenos */
+@media (max-width: 320px) {
+  .container-responsive {
+    @apply px-2;
+  }
+}
