@@ -4,10 +4,20 @@ import React, { createContext, useContext, useEffect, useState } from 'react'
 import { User, Session } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
 
+interface Profile {
+  id: string
+  access_level?: number
+  role?: string
+  permissions?: { can_edit?: boolean; can_view?: boolean; is_admin?: boolean; can_manage_users?: boolean } | null
+  full_name?: string | null
+  avatar_url?: string | null
+}
+
 interface AuthContextType {
   user: User | null
   session: Session | null
   loading: boolean
+  profile: Profile | null
   signIn: (email: string, password: string) => Promise<{ error?: any }>
   signOut: () => Promise<void>
 }
@@ -18,6 +28,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
+  const [profile, setProfile] = useState<Profile | null>(null)
 
   useEffect(() => {
     // Obter sessão inicial
@@ -38,6 +49,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     return () => subscription.unsubscribe()
   }, [])
+
+  // Carregar perfil do usuário (tabela public.profiles)
+  useEffect(() => {
+    const loadProfile = async () => {
+      if (!user) {
+        setProfile(null)
+        return
+      }
+      try {
+        const { data, error } = await supabase
+          .from('profiles')
+          .select('id, access_level, role, permissions, full_name, avatar_url')
+          .eq('id', user.id)
+          .single()
+
+        if (error) {
+          // Não bloquear aplicação por erro de perfil; apenas logar
+          console.warn('Falha ao carregar perfil:', error)
+          setProfile(null)
+          return
+        }
+        setProfile(data as Profile)
+      } catch (err) {
+        console.warn('Erro inesperado ao carregar perfil:', err)
+        setProfile(null)
+      }
+    }
+
+    loadProfile()
+  }, [user])
 
   const signIn = async (email: string, password: string) => {
     try {
@@ -64,6 +105,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     user,
     session,
     loading,
+    profile,
     signIn,
     signOut,
   }

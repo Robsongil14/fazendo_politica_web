@@ -342,7 +342,7 @@ const InfoCard: React.FC<InfoCardProps> = ({
 export default function MunicipioDetalhes() {
   const params = useParams();
   const router = useRouter();
-  const { user, signOut } = useAuth();
+  const { user, signOut, profile } = useAuth();
   const [municipio, setMunicipio] = useState<MunicipioDetalhado | null>(null);
   const [vereadores, setVereadores] = useState<Vereador[]>([]);
   const [deputadosFederais, setDeputadosFederais] = useState<DeputadoFederal[]>([]);
@@ -361,7 +361,12 @@ export default function MunicipioDetalhes() {
   const [isSaving, setIsSaving] = useState(false);
   const [editingDeputado, setEditingDeputado] = useState<{type: 'federal' | 'estadual' | 'vereador', id: string, field: string} | null>(null);
   const [editingDeputadoValue, setEditingDeputadoValue] = useState('');
-  const [userNivel, setUserNivel] = useState<number | null>(null);
+  const [userNivel, setUserNivel] = useState<number>(1);
+  useEffect(() => {
+    if (profile && typeof profile.access_level === 'number') {
+      setUserNivel(profile.access_level)
+    }
+  }, [profile])
   // Form state for editing Presidente da Câmara as a grouped area
   const [presidenteForm, setPresidenteForm] = useState<{ nome: string; partido: string; votos: string }>(
     { nome: '', partido: '', votos: '' }
@@ -2429,15 +2434,17 @@ export default function MunicipioDetalhes() {
           <details className="group">
             <summary className="cursor-pointer flex items-center justify-between mb-4">
               <h2 className="text-xl font-bold text-psd-blue mb-0 text-center">Família do Prefeito</h2>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={handleOpenAddFamilia}
-                  className="bg-blue-600 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-blue-700"
-                  title="Adicionar membro da família"
-                >
-                  <Plus size={16} />
-                </button>
-              </div>
+              {userNivel !== 1 && (
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleOpenAddFamilia}
+                    className="bg-blue-600 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-blue-700"
+                    title="Adicionar membro da família"
+                  >
+                    <Plus size={16} />
+                  </button>
+                </div>
+              )}
             </summary>
             <div className="mt-2">
               {familiaLista.length > 0 ? (
@@ -2486,15 +2493,17 @@ export default function MunicipioDetalhes() {
           <details className="group">
             <summary className="cursor-pointer flex items-center justify-between mb-4">
               <h2 className="text-xl font-bold text-psd-blue mb-0 text-center">Mídias Locais</h2>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={handleOpenAddMidia}
-                  className="bg-purple-600 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-purple-700"
-                  title="Adicionar mídia local (rádio/blog)"
-                >
-                  <Plus size={16} />
-                </button>
-              </div>
+              {userNivel !== 1 && (
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleOpenAddMidia}
+                    className="bg-purple-600 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-purple-700"
+                    title="Adicionar mídia local (rádio/blog)"
+                  >
+                    <Plus size={16} />
+                  </button>
+                </div>
+              )}
             </summary>
             <div className="mt-2">
               {midiasLocais.length > 0 ? (
@@ -2532,12 +2541,14 @@ export default function MunicipioDetalhes() {
                             <p className="text-xs text-gray-500 italic mt-1">{midia.observacoes}</p>
                           )}
                         </div>
-                        <button 
-                          onClick={() => alert('Funcionalidade de edição de mídias em desenvolvimento')}
-                          className="bg-purple-600 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-purple-700"
-                        >
-                          <Edit size={14} />
-                        </button>
+                        {userNivel !== 1 && (
+                          <button 
+                            onClick={() => alert('Funcionalidade de edição de mídias em desenvolvimento')}
+                            className="bg-purple-600 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-purple-700"
+                          >
+                            <Edit size={14} />
+                          </button>
+                        )}
                       </div>
                     </div>
                   ))}
@@ -2797,12 +2808,14 @@ export default function MunicipioDetalhes() {
               <h2 className="text-xl font-bold text-psd-blue">Vereadores</h2>
               <div className="flex items-center space-x-2">
                 <span className="text-sm text-gray-600">{vereadores.length} vereador(es) cadastrado(s)</span>
-                <button 
-                  onClick={() => alert('Funcionalidade de adicionar vereadores em desenvolvimento.\n\nEm breve você poderá:\n• Adicionar novos vereadores\n• Definir partido e votos\n• Adicionar informações de contato\n• Incluir observações')}
-                  className="bg-green-600 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-green-700"
-                >
-                  <span className="text-lg font-bold">+</span>
-                </button>
+                {userNivel !== 1 && (
+                  <button 
+                    onClick={() => alert('Funcionalidade de adicionar vereadores em desenvolvimento.\n\nEm breve você poderá:\n• Adicionar novos vereadores\n• Definir partido e votos\n• Adicionar informações de contato\n• Incluir observações')}
+                    className="bg-green-600 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-green-700"
+                  >
+                    <span className="text-lg font-bold">+</span>
+                  </button>
+                )}
               </div>
             </summary>
             <div className="mt-2">
@@ -2849,13 +2862,15 @@ export default function MunicipioDetalhes() {
                   {vereadores.map((vereador) => (
                     <div key={vereador.id} className="border rounded-lg p-4 bg-yellow-50 relative">
                       {/* edit button on the right (matches mobile app style) */}
-                      <button
-                        onClick={() => handleOpenVereadorModal(vereador)}
-                        className="absolute right-4 top-4 bg-white border border-blue-200 text-psd-blue rounded-full w-8 h-8 flex items-center justify-center shadow"
-                        aria-label={`Editar ${vereador.nome || 'vereador'}`}
-                      >
-                        <Edit size={14} />
-                      </button>
+                      {userNivel !== 1 && (
+                        <button
+                          onClick={() => handleOpenVereadorModal(vereador)}
+                          className="absolute right-4 top-4 bg-white border border-blue-200 text-psd-blue rounded-full w-8 h-8 flex items-center justify-center shadow"
+                          aria-label={`Editar ${vereador.nome || 'vereador'}`}
+                        >
+                          <Edit size={14} />
+                        </button>
+                      )}
 
                       <h4 className="font-bold text-gray-900 mb-2 text-lg">{vereador.nome || 'Nome não informado'}</h4>
 
