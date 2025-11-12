@@ -1912,6 +1912,9 @@ export default function MunicipioDetalhes() {
                 className="w-32 h-32 rounded-full object-cover"
               />
             </div>
+            <p className="mt-3 text-white font-semibold">
+              {municipio.prefeito || 'Prefeito não informado'}
+            </p>
           </div>
         )}
 
