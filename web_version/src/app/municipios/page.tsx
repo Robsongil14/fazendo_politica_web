@@ -3,7 +3,9 @@
 import { useState, useEffect, ReactNode } from 'react'
 import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
-import { Search, MapPin, User, Users, Loader2 } from 'lucide-react'
+import { Search, MapPin, User, Users, Loader2, LogOut } from 'lucide-react'
+import { useAuth } from '@/contexts/AuthContext'
+import { useRouter } from 'next/navigation'
 
 // Cores do PSD (baseado no manual da marca, usar como referência)
 const PSD_BLUE = '#0065BD' // Azul principal
@@ -12,6 +14,58 @@ const PSD_YELLOW = '#FFA300' // Amarelo
 const TEXT_COLOR_LIGHT = '#333333'
 const TEXT_COLOR_DARK = '#666666'
 const CARD_BG_COLOR = '#FFFFFF'
+
+// Cor do texto por partido (cores oficiais aproximadas)
+const partidoTextColor = (p?: string) => {
+  const s = (p || '').trim().toUpperCase()
+  const map: Record<string, string> = {
+    'PT': '#C8102E',
+    'PSD': PSD_BLUE, // usa azul principal para texto
+    'MDB': '#00923D',
+    'PSDB': '#1B5CAB',
+    'PL': '#1E40AF',
+    'PDT': '#C62828',
+    'PSB': '#FFCC00',
+    'REPUBLICANOS': '#1B75BB',
+    'PODEMOS': '#0056A7',
+    'AVANTE': '#FF6A00',
+    'UNIÃO BRASIL': '#003399',
+    'UNIAO BRASIL': '#003399',
+    'UNIÃO': '#003399',
+    'UNIAO': '#003399',
+    'PP': '#0099D6',
+    'PROGRESSISTAS': '#0099D6',
+    'DEM': '#00843D',
+    'NOVO': '#F26522',
+    'PCDOB': '#C8102E',
+    'PSOL': '#FFD700',
+    'PV': '#2E7D32',
+    'CIDADANIA': '#F36D21',
+    'SOLIDARIEDADE': '#F36F21',
+    'PROS': '#FF7A00',
+    'PATRIOTA': '#00695C',
+    'PSC': '#006400',
+    'REDE': '#009688',
+    'PRTB': '#1D4ED8',
+    'PTB': '#CC0000'
+  }
+  return map[s] || TEXT_COLOR_DARK
+}
+
+// Renderiza o nome do partido com estilo especial (PSD com letras coloridas)
+const renderPartidoName = (p?: string) => {
+  const s = (p || '').trim().toUpperCase()
+  if (s === 'PSD') {
+    return (
+      <span className="font-bold tracking-tight" aria-label="PSD">
+        <span style={{ color: PSD_BLUE }}>P</span>
+        <span style={{ color: PSD_GREEN }}>S</span>
+        <span style={{ color: PSD_YELLOW }}>D</span>
+      </span>
+    )
+  }
+  return <span style={{ color: partidoTextColor(p) }}>{p}</span>
+}
 
 interface Municipio {
   municipio: any
@@ -29,6 +83,8 @@ export default function MunicipiosPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const { signOut } = useAuth()
+  const router = useRouter()
 
   useEffect(() => {
     fetchMunicipios()
@@ -110,9 +166,25 @@ export default function MunicipiosPage() {
     <div className="min-h-screen" style={{ backgroundColor: PSD_BLUE }}>
       {/* Header */}
       <div className="px-4 py-6">
-        <h1 className="text-3xl font-bold text-white text-center mb-6">
-          Municípios da Bahia
-        </h1>
+        <div className="max-w-2xl mx-auto flex items-center justify-between mb-6">
+          <h1 className="text-3xl font-bold text-white mb-0">
+            Municípios da Bahia
+          </h1>
+          <button
+            onClick={async () => {
+              try {
+                await signOut()
+              } finally {
+                router.push('/auth/login')
+              }
+            }}
+            className="inline-flex items-center px-4 py-2 rounded-lg text-gray-800 font-bold shadow-md hover:shadow-lg transition-shadow"
+            style={{ backgroundColor: PSD_YELLOW }}
+          >
+            <LogOut className="w-4 h-4 mr-2" />
+            Sair
+          </button>
+        </div>
 
         {/* Search */}
         <div className="max-w-md mx-auto mb-6">
@@ -163,7 +235,7 @@ export default function MunicipiosPage() {
                       </span>
                       {municipio.partido && (
                         <span className="text-base font-bold text-gray-800">
-                          Partido: {municipio.partido}
+                          Partido: {renderPartidoName(municipio.partido)}
                         </span>
                       )}
                     </div>

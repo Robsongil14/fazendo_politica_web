@@ -4,3 +4,5 @@ web_version_vercel.zip
 web_version_vercel.zip
 vercel_pequeno.zip
 web_version/.next/
+web_version_build.zip
+web_version/.env*

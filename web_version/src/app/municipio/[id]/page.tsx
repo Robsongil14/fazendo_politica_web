@@ -35,6 +35,41 @@ const PSD_YELLOW = '#FFA300' // Amarelo
 const TEXT_COLOR_LIGHT = '#333333'
 const TEXT_COLOR_DARK = '#666666'
 const CARD_BG_COLOR = '#FFFFFF'
+// Listas de órgãos para seleção nas Emendas/Programas
+const SECRETARIAS_ESTADUAIS = [
+  { sigla: 'SESAB', nome: 'Secretaria da Saúde do Estado da Bahia', area: 'Saúde' },
+  { sigla: 'SEC', nome: 'Secretaria da Educação do Estado da Bahia', area: 'Educação' },
+  { sigla: 'SEINFRA', nome: 'Secretaria de Infraestrutura da Bahia', area: 'Obras, estradas, energia' },
+  { sigla: 'SEDUR', nome: 'Secretaria de Desenvolvimento Urbano', area: 'Habitação, saneamento, urbanismo' },
+  { sigla: 'SEPLAN', nome: 'Secretaria do Planejamento', area: 'Planejamento e orçamento' },
+  { sigla: 'CAR', nome: 'Companhia de Desenvolvimento e Ação Regional', area: 'Agricultura familiar, desenvolvimento rural' },
+  { sigla: 'SUDESB', nome: 'Superintendência dos Desportos do Estado da Bahia', area: 'Esporte e lazer' },
+  { sigla: 'SETRE', nome: 'Secretaria do Trabalho, Emprego, Renda e Esporte', area: 'Emprego e capacitação' },
+  { sigla: 'SDR', nome: 'Secretaria de Desenvolvimento Rural', area: 'Agricultura e economia rural' },
+  { sigla: 'SEMA', nome: 'Secretaria do Meio Ambiente', area: 'Meio ambiente e recursos hídricos' },
+  { sigla: 'SECTI', nome: 'Secretaria de Ciência, Tecnologia e Inovação', area: 'Tecnologia e inovação' },
+  { sigla: 'SDE', nome: 'Secretaria de Desenvolvimento Econômico', area: 'Indústria, comércio e energia' },
+  { sigla: 'SJDHDS', nome: 'Secretaria de Justiça, Direitos Humanos e Desenvolvimento Social', area: 'Assistência social' },
+  { sigla: 'SAEB', nome: 'Secretaria da Administração do Estado da Bahia', area: 'Gestão pública' },
+  { sigla: 'SECULT', nome: 'Secretaria de Cultura', area: 'Cultura e patrimônio' },
+  { sigla: 'SERIN', nome: 'Secretaria de Relações Institucionais', area: 'Relação com municípios e parlamento' }
+];
+
+const MINISTERIOS_FEDERAIS = [
+  { sigla: 'MS', nome: 'Ministério da Saúde', area: 'Saúde' },
+  { sigla: 'MEC', nome: 'Ministério da Educação', area: 'Escolas, creches, universidades' },
+  { sigla: 'MDR', nome: 'Ministério do Desenvolvimento Regional', area: 'Obras, infraestrutura, saneamento' },
+  { sigla: 'MAPA', nome: 'Ministério da Agricultura, Pecuária e Abastecimento', area: 'Agricultura, agroindústria' },
+  { sigla: 'MDS', nome: 'Ministério do Desenvolvimento e Assistência Social', area: 'Assistência social' },
+  { sigla: 'MTur', nome: 'Ministério do Turismo', area: 'Turismo, eventos, obras turísticas' },
+  { sigla: 'ME', nome: 'Ministério da Economia / Fazenda', area: 'Repasses e controle orçamentário' },
+  { sigla: 'MMA', nome: 'Ministério do Meio Ambiente', area: 'Sustentabilidade e recursos naturais' },
+  { sigla: 'MinC', nome: 'Ministério da Cultura', area: 'Projetos culturais' },
+  { sigla: 'MCom', nome: 'Ministério das Comunicações', area: 'Internet, TV, conectividade' },
+  { sigla: 'MInfra', nome: 'Ministério da Infraestrutura', area: 'Estradas, transportes' },
+  { sigla: 'MJSP', nome: 'Ministério da Justiça e Segurança Pública', area: 'Segurança pública' },
+  { sigla: 'MPO', nome: 'Ministério do Planejamento e Orçamento', area: 'Planejamento federal' }
+];
 
 // Interfaces
 interface MunicipioDetalhado {
@@ -61,6 +96,9 @@ interface MunicipioDetalhado {
   votos_deputado_federal?: number | null;
   lideranca?: string;
   banda_b?: string;
+  familia_prefeito?: string;
+  primeira_dama?: string;
+  filhos_prefeito?: string;
   presidente_camara_partido?: string;
   presidente_camara_votos_vereador?: string;
   vice_prefeito_partido?: string;
@@ -143,6 +181,60 @@ interface MidiaLocal {
   observacoes?: string;
 }
 
+// Família do Prefeito: itens individuais (ex.: primeira-dama, filho, filha)
+interface FamiliaMembro {
+  id: string;
+  municipio_id: string;
+  tipo?: string; // 'primeira_dama' | 'primeiro_cavalheiro' | 'filho' | 'filha'
+  nome?: string;
+  observacoes?: string;
+}
+
+// Programas/Emendas: itens com parlamentar e órgão
+  interface ProgramaEmenda {
+    id: string;
+    municipio_id: string;
+    esfera: 'estadual' | 'federal';
+    parlamentar_tipo?: 'deputado_federal' | 'deputado_estadual' | 'senador' | null;
+    parlamentar_nome?: string | null;
+    orgao_sigla?: string | null;
+    orgao_nome?: string | null;
+    area?: string | null;
+    observacoes?: string | null;
+  }
+
+// Lideranças locais relevantes para o município
+interface LiderancaPessoa {
+  id: string;
+  municipio_id: string;
+  nome?: string;
+  partido?: string;
+  votos_recebidos?: number;
+  historico?: 'prefeito' | 'candidato_perdeu' | 'vereador' | 'vice' | 'vice_atual';
+  observacoes?: string;
+}
+
+// Políticos da "Banda B" (deputados federais ou estaduais)
+interface BandaBPolitico {
+  id: string;
+  municipio_id: string;
+  nome?: string;
+  esfera: 'federal' | 'estadual';
+  partido?: string;
+  votos_recebidos?: number;
+  historico?: 'prefeito' | 'candidato_perdeu' | 'vereador' | 'vice' | 'vice_atual';
+  observacoes?: string;
+}
+interface BandaBLocal {
+  id: string;
+  municipio_id: string;
+  nome?: string;
+  partido?: string;
+  votos_recebidos?: number;
+  historico?: 'prefeito' | 'candidato_perdeu' | 'vereador' | 'vice' | 'vice_atual';
+  observacoes?: string;
+}
+
 interface EstatisticasTransferencias {
   total_transferencias: number;
   valor_total: number;
@@ -173,12 +265,23 @@ const InfoCard: React.FC<InfoCardProps> = ({
 }) => {
   const handleClick = () => {
     if (isLink && value && typeof value === 'string') {
-      if (value.includes('instagram.com')) {
-        window.open(value.startsWith('http') ? value : `https://${value}`, '_blank');
-      } else if (value.includes('@')) {
-        window.open(`mailto:${value}`, '_blank');
-      } else if (value.match(/^\d+$/)) {
-        window.open(`tel:${value}`, '_blank');
+      const lowerTitle = (title || '').toLowerCase();
+      const v = value.trim();
+      const isInstagram = lowerTitle.includes('instagram') || v.includes('instagram.com') || v.startsWith('@');
+      if (isInstagram) {
+        const link = v.includes('instagram.com')
+          ? (v.startsWith('http') ? v : `https://${v}`)
+          : `https://instagram.com/${v.replace(/^@/, '')}`;
+        window.open(link, '_blank');
+        return;
+      }
+      if (v.includes('@')) {
+        window.open(`mailto:${v}`, '_blank');
+        return;
+      }
+      if (v.match(/^\d+$/)) {
+        window.open(`tel:${v}`, '_blank');
+        return;
       }
     } else if (onPress) {
       onPress();
@@ -209,8 +312,8 @@ const InfoCard: React.FC<InfoCardProps> = ({
             {title}
           </h3>
           <p 
-            className={`text-base font-semibold ${isLink ? 'underline' : ''}`}
-            style={{ color: isLink ? PSD_BLUE : TEXT_COLOR_LIGHT }}
+            className={`font-semibold ${isLink ? 'underline' : ''} ${typeof value === 'string' && value.length > 36 ? 'text-sm' : 'text-base'} break-words whitespace-normal leading-snug`}
+            style={{ color: isLink ? PSD_BLUE : TEXT_COLOR_LIGHT, wordBreak: 'break-word', overflowWrap: 'anywhere' }}
           >
             {value || 'Não informado'}
           </p>
@@ -245,6 +348,8 @@ export default function MunicipioDetalhes() {
   const [deputadosFederais, setDeputadosFederais] = useState<DeputadoFederal[]>([]);
   const [deputadosEstaduais, setDeputadosEstaduais] = useState<DeputadoEstadual[]>([]);
   const [midiasLocais, setMidiasLocais] = useState<MidiaLocal[]>([]);
+  const [familiaLista, setFamiliaLista] = useState<FamiliaMembro[]>([]);
+  const [editingFamiliaItemId, setEditingFamiliaItemId] = useState<string | null>(null);
   const [candidatosPrefeito, setCandidatosPrefeito] = useState<CandidatoPrefeito[]>([]);
   const [transferencias, setTransferencias] = useState<TransferenciaGovernamental[]>([]);
   const [estatisticas, setEstatisticas] = useState<EstatisticasTransferencias | null>(null);
@@ -256,6 +361,819 @@ export default function MunicipioDetalhes() {
   const [isSaving, setIsSaving] = useState(false);
   const [editingDeputado, setEditingDeputado] = useState<{type: 'federal' | 'estadual' | 'vereador', id: string, field: string} | null>(null);
   const [editingDeputadoValue, setEditingDeputadoValue] = useState('');
+  const [userNivel, setUserNivel] = useState<number | null>(null);
+  // Form state for editing Presidente da Câmara as a grouped area
+  const [presidenteForm, setPresidenteForm] = useState<{ nome: string; partido: string; votos: string }>(
+    { nome: '', partido: '', votos: '' }
+  );
+  // Form state para Família do Prefeito (agrupado)
+  const [familiaForm, setFamiliaForm] = useState<{ primeira_dama: string; filhos_prefeito: string }>({
+    primeira_dama: '',
+    filhos_prefeito: ''
+  });
+  // Modal state for editing a vereador (grouped editor)
+  const [editingVereador, setEditingVereador] = useState<Vereador | null>(null);
+  const [vereadorForm, setVereadorForm] = useState<{
+    nome: string;
+    partido: string;
+    votos_recebidos: string;
+    deputado_apoiado: string;
+    telefone: string;
+    observacoes: string;
+  }>({ nome: '', partido: '', votos_recebidos: '', deputado_apoiado: '', telefone: '', observacoes: '' });
+
+  const handleOpenVereadorModal = (vereador: Vereador) => {
+    if (userNivel === 1) {
+      alert('Usuários de nível 1 não podem editar.');
+      return;
+    }
+    setEditingVereador(vereador);
+    setVereadorForm({
+      nome: vereador.nome || '',
+      partido: vereador.partido || '',
+      votos_recebidos: vereador.votos_recebidos || '',
+      deputado_apoiado: vereador.deputado_apoiado || '',
+      telefone: vereador.telefone || '',
+      observacoes: vereador.observacoes || ''
+    });
+  };
+
+  const handleSaveVereador = async () => {
+    if (!editingVereador) return;
+    setIsSaving(true);
+    try {
+      const updates: any = {
+        nome: vereadorForm.nome || null,
+        partido: vereadorForm.partido || null,
+        votos_recebidos: vereadorForm.votos_recebidos || null,
+        deputado_apoiado: vereadorForm.deputado_apoiado || null,
+        telefone: vereadorForm.telefone || null,
+        observacoes: vereadorForm.observacoes || null
+      };
+
+      const { error } = await supabase
+        .from('vereadores')
+        .update(updates)
+        .eq('id', editingVereador.id);
+
+      if (error) throw error;
+
+      // Update local state
+      setVereadores(prev => prev.map(v => v.id === editingVereador.id ? { ...v, ...updates } as Vereador : v));
+      setEditingVereador(null);
+      alert('Vereador atualizado com sucesso!');
+    } catch (err) {
+      console.error('Erro ao salvar vereador:', err);
+      alert('Erro ao atualizar vereador. Tente novamente.');
+  } finally {
+    setIsSaving(false);
+  }
+  };
+
+  // Lideranças: abrir modal de adição
+  const handleOpenAddLideranca = () => {
+    if (userNivel === 1) {
+      alert('Usuários de nível 1 não podem adicionar.');
+      return;
+    }
+    setEditingLideranca(null);
+    setLiderancaForm({});
+    setShowAddLiderancaModal(true);
+  };
+
+  // Lideranças: abrir modal em modo edição
+  const handleOpenEditLideranca = (item: LiderancaPessoa) => {
+    if (userNivel === 1) {
+      alert('Usuários de nível 1 não podem editar.');
+      return;
+    }
+    setEditingLideranca(item);
+    setLiderancaForm({
+      nome: item.nome || undefined,
+      partido: item.partido || undefined,
+      votos_recebidos: item.votos_recebidos || undefined,
+      historico: item.historico || undefined,
+      observacoes: item.observacoes || undefined,
+    });
+    setShowAddLiderancaModal(true);
+  };
+
+  // Lideranças: salvar (inserir/atualizar)
+  const handleSaveLideranca = async () => {
+    if (!municipio) return;
+    setIsSaving(true);
+    try {
+      const payload: any = {
+        municipio_id: municipio.id,
+        nome: liderancaForm.nome || null,
+        partido: liderancaForm.partido || null,
+        votos_recebidos: liderancaForm.votos_recebidos || null,
+        historico: liderancaForm.historico || null,
+        observacoes: liderancaForm.observacoes || null,
+      };
+
+      if (editingLideranca) {
+        const { error } = await supabase
+          .from('liderancas')
+          .update(payload)
+          .eq('id', editingLideranca.id);
+        if (error) throw error;
+        setLiderancas(prev => prev.map(l => l.id === editingLideranca.id ? { ...l, ...payload } as LiderancaPessoa : l));
+      } else {
+        const { data, error } = await supabase
+          .from('liderancas')
+          .insert(payload)
+          .select()
+          .single();
+        if (error) throw error;
+        setLiderancas(prev => [data as LiderancaPessoa, ...(prev || [])]);
+      }
+
+      setShowAddLiderancaModal(false);
+      setEditingLideranca(null);
+      alert('Liderança salva com sucesso!');
+    } catch (err) {
+      console.error('Erro ao salvar liderança:', err);
+      alert('Erro ao salvar liderança. Tente novamente.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Lideranças: excluir
+  const handleDeleteLideranca = async (id: string) => {
+    if (userNivel === 1) {
+      alert('Usuários de nível 1 não podem excluir.');
+      return;
+    }
+    if (!confirm('Tem certeza que deseja excluir esta liderança?')) return;
+    setIsSaving(true);
+    try {
+      const { error } = await supabase
+        .from('liderancas')
+        .delete()
+        .eq('id', id);
+      if (error) throw error;
+      setLiderancas(prev => prev.filter(l => l.id !== id));
+      alert('Liderança excluída!');
+    } catch (err) {
+      console.error('Erro ao excluir liderança:', err);
+      alert('Erro ao excluir liderança. Tente novamente.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Banda B (Locais): abrir modal de adição
+  const handleOpenAddBandaBLocal = () => {
+    if (userNivel === 1) {
+      alert('Usuários de nível 1 não podem adicionar.');
+      return;
+    }
+    setEditingBandaBLocal(null);
+    setBandaBLocalForm({});
+    setShowAddBandaBLocalModal(true);
+  };
+
+  // Banda B (Locais): abrir modal em modo edição
+  const handleOpenEditBandaBLocal = (item: BandaBLocal) => {
+    if (userNivel === 1) {
+      alert('Usuários de nível 1 não podem editar.');
+      return;
+    }
+    setEditingBandaBLocal(item);
+    setBandaBLocalForm({
+      nome: item.nome || undefined,
+      partido: item.partido || undefined,
+      votos_recebidos: item.votos_recebidos || undefined,
+      historico: item.historico || undefined,
+      observacoes: item.observacoes || undefined,
+    });
+    setShowAddBandaBLocalModal(true);
+  };
+
+  // Banda B (Locais): salvar (inserir/atualizar)
+  const handleSaveBandaBLocal = async () => {
+    if (!municipio) return;
+    setIsSaving(true);
+    try {
+      const payload: any = {
+        municipio_id: municipio.id,
+        nome: bandaBLocalForm.nome || null,
+        partido: bandaBLocalForm.partido || null,
+        votos_recebidos: bandaBLocalForm.votos_recebidos || null,
+        historico: bandaBLocalForm.historico || null,
+        observacoes: bandaBLocalForm.observacoes || null,
+      };
+
+      if (editingBandaBLocal) {
+        const { error } = await supabase
+          .from('banda_b')
+          .update(payload)
+          .eq('id', editingBandaBLocal.id);
+        if (error) throw error;
+        setBandaBLocais(prev => prev.map(b => b.id === editingBandaBLocal.id ? { ...b, ...payload } as BandaBLocal : b));
+      } else {
+        const { data, error } = await supabase
+          .from('banda_b')
+          .insert(payload)
+          .select()
+          .single();
+        if (error) throw error;
+        setBandaBLocais(prev => [data as BandaBLocal, ...(prev || [])]);
+      }
+
+      setShowAddBandaBLocalModal(false);
+      setEditingBandaBLocal(null);
+      alert('Banda B (Local) salva com sucesso!');
+    } catch (err) {
+      console.error('Erro ao salvar Banda B (Local):', err);
+      alert('Erro ao salvar Banda B. Tente novamente.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Banda B (Locais): excluir
+  const handleDeleteBandaBLocal = async (id: string) => {
+    if (userNivel === 1) {
+      alert('Usuários de nível 1 não podem excluir.');
+      return;
+    }
+    if (!confirm('Tem certeza que deseja excluir este item da Banda B?')) return;
+    setIsSaving(true);
+    try {
+      const { error } = await supabase
+        .from('banda_b')
+        .delete()
+        .eq('id', id);
+      if (error) throw error;
+      setBandaBLocais(prev => prev.filter(b => b.id !== id));
+      alert('Item da Banda B excluído!');
+    } catch (err) {
+      console.error('Erro ao excluir Banda B (Local):', err);
+      alert('Erro ao excluir Banda B. Tente novamente.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Banda B: abrir modal de adição
+  const handleOpenAddBandaB = () => {
+    if (userNivel === 1) {
+      alert('Usuários de nível 1 não podem adicionar.');
+      return;
+    }
+    setEditingBandaB(null);
+    setBandaBForm({ esfera: 'federal' });
+    setShowAddBandaBModal(true);
+  };
+
+  // Banda B: abrir modal em modo edição
+  const handleOpenEditBandaB = (item: BandaBPolitico) => {
+    if (userNivel === 1) {
+      alert('Usuários de nível 1 não podem editar.');
+      return;
+    }
+    setEditingBandaB(item);
+    setBandaBForm({
+      nome: item.nome || undefined,
+      esfera: item.esfera || 'federal',
+      partido: item.partido || undefined,
+      votos_recebidos: item.votos_recebidos || undefined,
+      historico: item.historico || undefined,
+      observacoes: item.observacoes || undefined,
+    });
+    setShowAddBandaBModal(true);
+  };
+
+  // Banda B: salvar (inserir/atualizar)
+  const handleSaveBandaB = async () => {
+    if (!municipio) return;
+    setIsSaving(true);
+    try {
+      const payload: any = {
+        municipio_id: municipio.id,
+        nome: bandaBForm.nome || null,
+        esfera: (bandaBForm.esfera as 'federal' | 'estadual') || 'federal',
+        partido: bandaBForm.partido || null,
+        votos_recebidos: bandaBForm.votos_recebidos || null,
+        historico: bandaBForm.historico || null,
+        observacoes: bandaBForm.observacoes || null,
+      };
+
+      if (editingBandaB) {
+        const { error } = await supabase
+          .from('banda_b_politicos')
+          .update(payload)
+          .eq('id', editingBandaB.id);
+        if (error) throw error;
+        setBandaBPoliticos(prev => prev.map(b => b.id === editingBandaB.id ? { ...b, ...payload } as BandaBPolitico : b));
+      } else {
+        const { data, error } = await supabase
+          .from('banda_b_politicos')
+          .insert(payload)
+          .select()
+          .single();
+        if (error) throw error;
+        setBandaBPoliticos(prev => [data as BandaBPolitico, ...(prev || [])]);
+      }
+
+      setShowAddBandaBModal(false);
+      setEditingBandaB(null);
+      alert('Deputado Banda B salvo com sucesso!');
+    } catch (err) {
+      console.error('Erro ao salvar Banda B:', err);
+      alert('Erro ao salvar Banda B. Tente novamente.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Banda B: excluir
+  const handleDeleteBandaB = async (id: string) => {
+    if (userNivel === 1) {
+      alert('Usuários de nível 1 não podem excluir.');
+      return;
+    }
+    if (!confirm('Tem certeza que deseja excluir este deputado Banda B?')) return;
+    setIsSaving(true);
+    try {
+      const { error } = await supabase
+        .from('banda_b_politicos')
+        .delete()
+        .eq('id', id);
+      if (error) throw error;
+      setBandaBPoliticos(prev => prev.filter(b => b.id !== id));
+      alert('Deputado Banda B excluído!');
+    } catch (err) {
+      console.error('Erro ao excluir Banda B:', err);
+      alert('Erro ao excluir Banda B. Tente novamente.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Mapear valores de histórico para rótulos amigáveis
+  const historicoLabel = (h?: string) => {
+    switch (h) {
+      case 'prefeito':
+        return 'Ex-prefeito(a)';
+      case 'candidato_perdeu':
+        return 'Não eleito(a)';
+      case 'vereador':
+        return 'Vereador(a)';
+      case 'vice':
+        return 'Vice-prefeito(a)';
+      case 'vice_atual':
+        return 'Vice-prefeito(a) atual';
+      default:
+        return h || '';
+    }
+  };
+  // Mapeamento de cores por partido (chips/badges)
+  const partidoClass = (p?: string) => {
+    const s = (p || '').trim().toUpperCase();
+    switch (s) {
+      case 'PT':
+        return 'bg-red-600 text-white';
+      case 'AVANTE':
+        return 'bg-orange-500 text-white';
+      case 'PODEMOS':
+        return 'bg-purple-600 text-white';
+      case 'MDB':
+        return 'bg-green-600 text-white';
+      case 'PSDB':
+        return 'bg-blue-700 text-white';
+      case 'PL':
+        return 'bg-blue-600 text-white';
+      case 'PDT':
+        return 'bg-red-500 text-white';
+      case 'PSB':
+        return 'bg-yellow-400 text-black';
+      case 'REPUBLICANOS':
+        return 'bg-blue-600 text-white';
+      default:
+        return 'bg-gray-200 text-gray-800';
+    }
+  };
+
+  // Gradientes especiais (ex.: PSD com verde, azul e amarelo)
+  const partidoStyle = (p?: string): React.CSSProperties | undefined => {
+    const s = (p || '').trim().toUpperCase();
+    if (s === 'PSD') {
+      return { background: `linear-gradient(90deg, ${PSD_GREEN}, ${PSD_BLUE} 50%, ${PSD_YELLOW})`, color: '#111', fontWeight: 700 };
+    }
+    if (s === 'UNIÃO BRASIL' || s === 'UNIAO BRASIL' || s === 'UNIÃO' || s === 'UNIAO') {
+      return { background: 'linear-gradient(90deg, #003399, #FFCC00)', color: '#111', fontWeight: 700 };
+    }
+    const MAP: Record<string, string> = {
+      PT: '#C8102E',
+      MDB: '#00923D',
+      PSDB: '#1B5CAB',
+      PL: '#1E40AF',
+      PDT: '#C62828',
+      PSB: '#FFCC00',
+      REPUBLICANOS: '#1B75BB',
+      PODEMOS: '#0056A7',
+      AVANTE: '#FF6A00',
+      PP: '#0099D6',
+      PROGRESSISTAS: '#0099D6',
+      DEM: '#00843D',
+      NOVO: '#F26522',
+      PCDOB: '#C8102E',
+      PSOL: '#FFD700',
+      PV: '#2E7D32',
+      CIDADANIA: '#F36D21',
+      SOLIDARIEDADE: '#F36F21',
+      PROS: '#FF7A00',
+      PATRIOTA: '#00695C',
+      PSC: '#006400',
+      REDE: '#009688',
+      PRTB: '#1D4ED8',
+      PTB: '#CC0000'
+    };
+    const hex = MAP[s];
+    return hex ? { backgroundColor: hex } : undefined;
+  };
+
+  // Cor do texto por partido (para usos sem badge)
+  const partidoTextColor = (p?: string) => {
+    const s = (p || '').trim().toUpperCase();
+    const map: Record<string, string> = {
+      PT: '#C8102E',
+      PSD: PSD_BLUE,
+      MDB: '#1E8449',
+      PSDB: '#1B5CAB',
+      PL: '#1E40AF',
+      PDT: '#C62828',
+      PSB: '#F59E0B',
+      REPUBLICANOS: '#1E40AF',
+      PODEMOS: '#0056A7',
+      AVANTE: '#FF6A00',
+      'UNIÃO BRASIL': '#003399',
+      'UNIAO BRASIL': '#003399',
+      UNIÃO: '#003399',
+      UNIAO: '#003399',
+      PP: '#0099D6',
+      PROGRESSISTAS: '#0099D6',
+      DEM: '#00843D',
+      NOVO: '#F26522',
+      PCDOB: '#C8102E',
+      PSOL: '#FFD700',
+      PV: '#2E7D32',
+      CIDADANIA: '#F36D21',
+      SOLIDARIEDADE: '#F36F21',
+      PROS: '#FF7A00',
+      PATRIOTA: '#00695C',
+      PSC: '#006400',
+      REDE: '#009688',
+      PRTB: '#1D4ED8',
+      PTB: '#CC0000'
+    };
+    return map[s] || TEXT_COLOR_DARK;
+  };
+
+  // Renderiza o nome do partido com estilo especial (PSD com letras coloridas)
+  const renderPartidoName = (p?: string) => {
+    const s = (p || '').trim().toUpperCase();
+    if (s === 'PSD') {
+      return (
+        <span className="font-bold tracking-tight" aria-label="PSD">
+          <span style={{ color: PSD_BLUE }}>P</span>
+          <span style={{ color: PSD_GREEN }}>S</span>
+          <span style={{ color: PSD_YELLOW }}>D</span>
+        </span>
+      );
+    }
+    return <span style={{ color: partidoTextColor(p) }}>{p}</span>;
+  };
+
+  // Mídias locais: add media modal state and handlers
+  const [showAddMidiaModal, setShowAddMidiaModal] = useState(false);
+  const [midiaForm, setMidiaForm] = useState<{ nome: string; tipo: string; contato: string; observacoes: string }>({
+    nome: '', tipo: '', contato: '', observacoes: ''
+  });
+
+  // Família do Prefeito: modal de adição e form
+  const [showAddFamiliaModal, setShowAddFamiliaModal] = useState(false);
+  const [familiaItemForm, setFamiliaItemForm] = useState<{ tipo: string; nome: string; observacoes: string }>({
+    tipo: '', nome: '', observacoes: ''
+  });
+
+  // Emendas/Programas: modal e estado
+  const [showAddProgramaModal, setShowAddProgramaModal] = useState(false);
+  const [programasEmendas, setProgramasEmendas] = useState<ProgramaEmenda[]>([]);
+  const [editingPrograma, setEditingPrograma] = useState<ProgramaEmenda | null>(null);
+  const [showDeleteProgramaModal, setShowDeleteProgramaModal] = useState(false);
+  const [programaToDelete, setProgramaToDelete] = useState<ProgramaEmenda | null>(null);
+  const [programaForm, setProgramaForm] = useState<{ esfera: 'estadual' | 'federal'; parlamentar_tipo: 'deputado_federal' | 'deputado_estadual' | 'senador'; parlamentar_nome: string; orgao_sigla: string; orgao_nome: string; area: string; observacoes: string }>({
+    esfera: 'estadual',
+    parlamentar_tipo: 'deputado_estadual',
+    parlamentar_nome: '',
+    orgao_sigla: '',
+    orgao_nome: '',
+    area: '',
+    observacoes: ''
+  });
+
+  // Lideranças: lista, modal e formulário
+  const [liderancas, setLiderancas] = useState<LiderancaPessoa[]>([]);
+  const [showAddLiderancaModal, setShowAddLiderancaModal] = useState(false);
+  const [editingLideranca, setEditingLideranca] = useState<LiderancaPessoa | null>(null);
+  const [liderancaForm, setLiderancaForm] = useState<Partial<LiderancaPessoa>>({});
+
+  // Banda B (Locais): lista, modal e formulário — igual Lideranças
+  const [bandaBLocais, setBandaBLocais] = useState<BandaBLocal[]>([]);
+  const [showAddBandaBLocalModal, setShowAddBandaBLocalModal] = useState(false);
+  const [editingBandaBLocal, setEditingBandaBLocal] = useState<BandaBLocal | null>(null);
+  const [bandaBLocalForm, setBandaBLocalForm] = useState<Partial<BandaBLocal>>({});
+
+  // Banda B: lista, modal e formulário
+  const [bandaBPoliticos, setBandaBPoliticos] = useState<BandaBPolitico[]>([]);
+  const [showAddBandaBModal, setShowAddBandaBModal] = useState(false);
+  const [editingBandaB, setEditingBandaB] = useState<BandaBPolitico | null>(null);
+  const [bandaBForm, setBandaBForm] = useState<Partial<BandaBPolitico>>({ esfera: 'federal' });
+
+  const handleOpenAddMidia = () => {
+    if (userNivel === 1) {
+      alert('Usuários de nível 1 não podem adicionar mídias.');
+      return;
+    }
+    setMidiaForm({ nome: '', tipo: '', contato: '', observacoes: '' });
+    setShowAddMidiaModal(true);
+  };
+
+  const handleSaveMidia = async () => {
+    if (!municipio) return;
+    setIsSaving(true);
+    try {
+      const newMidia = {
+        municipio_id: municipio.id,
+        nome: midiaForm.nome || null,
+        tipo: midiaForm.tipo || null,
+        contato: midiaForm.contato || null,
+        observacoes: midiaForm.observacoes || null
+      };
+
+      const { data, error } = await supabase
+        .from('midias_locais')
+        .insert(newMidia)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      setMidiasLocais(prev => [data, ...(prev || [])]);
+      setShowAddMidiaModal(false);
+      alert('Mídia local adicionada com sucesso!');
+    } catch (err) {
+      console.error('Erro ao adicionar mídia:', err);
+      alert('Erro ao adicionar mídia. Tente novamente.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Emendas/Programas: abrir modal
+  const handleOpenAddPrograma = () => {
+    if (userNivel === 1) {
+      alert('Usuários de nível 1 não podem adicionar emendas/programas.');
+      return;
+    }
+    setEditingPrograma(null);
+    setProgramaForm({
+      esfera: 'estadual',
+      parlamentar_tipo: 'deputado_estadual',
+      parlamentar_nome: '',
+      orgao_sigla: '',
+      orgao_nome: '',
+      area: '',
+      observacoes: ''
+    });
+    setShowAddProgramaModal(true);
+  };
+
+  // Emendas/Programas: abrir modal em modo edição
+  const handleOpenEditPrograma = (p: ProgramaEmenda) => {
+    if (userNivel === 1) {
+      alert('Usuários de nível 1 não podem editar emendas/programas.');
+      return;
+    }
+    setEditingPrograma(p);
+    setProgramaForm({
+      esfera: p.esfera,
+      parlamentar_tipo: (p.parlamentar_tipo as any) || 'deputado_estadual',
+      parlamentar_nome: p.parlamentar_nome || '',
+      orgao_sigla: p.orgao_sigla || '',
+      orgao_nome: p.orgao_nome || '',
+      area: p.area || '',
+      observacoes: p.observacoes || ''
+    });
+    setShowAddProgramaModal(true);
+  };
+
+  // Emendas/Programas: salvar
+  const handleSavePrograma = async () => {
+    if (!municipio) return;
+    if (!programaForm.parlamentar_nome) {
+      alert('Informe o nome do parlamentar.');
+      return;
+    }
+    if (!programaForm.orgao_sigla) {
+      alert('Selecione o órgão.');
+      return;
+    }
+    setIsSaving(true);
+    try {
+      const newItem = {
+        municipio_id: municipio.id,
+        esfera: programaForm.esfera,
+        parlamentar_tipo: programaForm.parlamentar_tipo || null,
+        parlamentar_nome: programaForm.parlamentar_nome || null,
+        orgao_sigla: programaForm.orgao_sigla || null,
+        orgao_nome: programaForm.orgao_nome || null,
+        area: programaForm.area || null,
+        observacoes: programaForm.observacoes || null
+      };
+
+      const { data, error } = await supabase
+        .from('programas_emendas')
+        .insert(newItem)
+        .select()
+        .single();
+
+      if (error) throw error;
+      setProgramasEmendas(prev => [data, ...(prev || [])]);
+      setShowAddProgramaModal(false);
+      alert('Emenda/Programa adicionada com sucesso!');
+    } catch (err) {
+      console.error('Erro ao adicionar emenda/programa:', err);
+      alert('Erro ao adicionar. Tente novamente.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Emendas/Programas: atualizar
+  const handleUpdatePrograma = async () => {
+    if (!editingPrograma) return;
+    if (!programaForm.parlamentar_nome) {
+      alert('Informe o nome do parlamentar.');
+      return;
+    }
+    if (!programaForm.orgao_sigla) {
+      alert('Selecione o órgão.');
+      return;
+    }
+    setIsSaving(true);
+    try {
+      const updates: Partial<ProgramaEmenda> = {
+        esfera: programaForm.esfera,
+        parlamentar_tipo: (programaForm.parlamentar_tipo as any) || null,
+        parlamentar_nome: programaForm.parlamentar_nome || null,
+        orgao_sigla: programaForm.orgao_sigla || null,
+        orgao_nome: programaForm.orgao_nome || null,
+        area: programaForm.area || null,
+        observacoes: programaForm.observacoes || null
+      };
+
+      const { error } = await supabase
+        .from('programas_emendas')
+        .update(updates)
+        .eq('id', editingPrograma.id);
+
+      if (error) throw error;
+
+      setProgramasEmendas(prev => prev.map(item => item.id === editingPrograma.id ? { ...item, ...updates } as ProgramaEmenda : item));
+      setShowAddProgramaModal(false);
+      setEditingPrograma(null);
+      alert('Emenda/Programa atualizado com sucesso!');
+    } catch (err) {
+      console.error('Erro ao atualizar emenda/programa:', err);
+      alert('Erro ao atualizar. Tente novamente.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Emendas/Programas: abrir modal de exclusão
+  const handleOpenDeletePrograma = (p: ProgramaEmenda) => {
+    if (userNivel === 1) {
+      alert('Usuários de nível 1 não podem excluir emendas/programas.');
+      return;
+    }
+    setProgramaToDelete(p);
+    setShowDeleteProgramaModal(true);
+  };
+
+  // Emendas/Programas: excluir
+  const handleDeletePrograma = async () => {
+    if (!programaToDelete) return;
+    setIsSaving(true);
+    try {
+      const { error } = await supabase
+        .from('programas_emendas')
+        .delete()
+        .eq('id', programaToDelete.id);
+
+      if (error) throw error;
+
+      setProgramasEmendas(prev => prev.filter(item => item.id !== programaToDelete.id));
+      setShowDeleteProgramaModal(false);
+      setProgramaToDelete(null);
+      alert('Emenda/Programa excluído com sucesso!');
+    } catch (err) {
+      console.error('Erro ao excluir emenda/programa:', err);
+      alert('Erro ao excluir. Tente novamente.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Família do Prefeito: abrir modal de adição
+  const handleOpenAddFamilia = () => {
+    if (userNivel === 1) {
+      alert('Usuários de nível 1 não podem adicionar membros da família.');
+      return;
+    }
+    setFamiliaItemForm({ tipo: '', nome: '', observacoes: '' });
+    setEditingFamiliaItemId(null);
+    setShowAddFamiliaModal(true);
+  };
+
+  // Família do Prefeito: abrir modal em modo edição
+  const handleOpenEditFamilia = (item: FamiliaMembro) => {
+    if (userNivel === 1) {
+      alert('Usuários de nível 1 não podem editar.');
+      return;
+    }
+    setFamiliaItemForm({
+      tipo: item.tipo || '',
+      nome: item.nome || '',
+      observacoes: item.observacoes || ''
+    });
+    setEditingFamiliaItemId(item.id);
+    setShowAddFamiliaModal(true);
+  };
+
+  // Família do Prefeito: salvar novo item
+  const handleSaveFamiliaItem = async () => {
+    if (!municipio) return;
+    if (!familiaItemForm.tipo || !familiaItemForm.nome) {
+      alert('Selecione o tipo e informe o nome.');
+      return;
+    }
+    setIsSaving(true);
+    try {
+      if (editingFamiliaItemId) {
+        // Atualização de item existente
+        const updates = {
+          tipo: familiaItemForm.tipo || null,
+          nome: familiaItemForm.nome || null,
+          observacoes: familiaItemForm.observacoes || null
+        };
+
+        const { data, error } = await supabase
+          .from('familia_prefeito')
+          .update(updates)
+          .eq('id', editingFamiliaItemId)
+          .select()
+          .single();
+
+        if (error) throw error;
+        setFamiliaLista(prev => prev.map(it => it.id === data.id ? data : it));
+        setShowAddFamiliaModal(false);
+        setEditingFamiliaItemId(null);
+        alert('Membro da família atualizado com sucesso!');
+      } else {
+        // Inserção de novo item
+        const newItem = {
+          municipio_id: municipio.id,
+          tipo: familiaItemForm.tipo || null,
+          nome: familiaItemForm.nome || null,
+          observacoes: familiaItemForm.observacoes || null
+        };
+
+        const { data, error } = await supabase
+          .from('familia_prefeito')
+          .insert(newItem)
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        setFamiliaLista(prev => [data, ...(prev || [])]);
+        setShowAddFamiliaModal(false);
+        alert('Membro da família adicionado com sucesso!');
+      }
+    } catch (err) {
+      console.error('Erro ao adicionar membro da família:', err);
+      alert('Erro ao adicionar membro da família. Tente novamente.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   const municipioId = params.id as string;
 
@@ -308,6 +1226,7 @@ export default function MunicipioDetalhes() {
 
   useEffect(() => {
     if (municipioId) {
+      console.log('municipioId:', municipioId);
       fetchMunicipioDetalhes();
       fetchVereadores();
       fetchTransferencias();
@@ -383,24 +1302,144 @@ export default function MunicipioDetalhes() {
         setMidiasLocais(midiasData || []);
       }
 
-      // Buscar candidatos a prefeito
-      const { data: candidatosData, error: candidatosError } = await supabase
-        .from('candidatos_prefeito_ba_2024')
+      // Buscar Família do Prefeito (itens individuais)
+      const { data: familiaData, error: familiaError } = await supabase
+        .from('familia_prefeito')
+        .select('*')
+        .eq('municipio_id', municipioId);
+      if (familiaError) {
+        console.error('Erro ao buscar família do prefeito:', familiaError);
+      } else {
+        setFamiliaLista(familiaData || []);
+      }
+
+      // Buscar Lideranças
+      const { data: liderancasData, error: liderancasError } = await supabase
+        .from('liderancas')
         .select('*')
         .eq('municipio_id', municipioId)
-        .order('votos', { ascending: false });
-      
+        .order('nome');
+      if (liderancasError) {
+        console.error('Erro ao buscar lideranças:', liderancasError);
+      } else {
+        setLiderancas(liderancasData || []);
+      }
+
+      // Buscar Banda B (locais)
+      const { data: bandaBLocaisData, error: bandaBLocaisError } = await supabase
+        .from('banda_b')
+        .select('*')
+        .eq('municipio_id', municipioId)
+        .order('nome');
+      if (bandaBLocaisError) {
+        console.error('Erro ao buscar Banda B (locais):', bandaBLocaisError);
+      } else {
+        setBandaBLocais(bandaBLocaisData || []);
+      }
+
+      // Buscar Banda B (deputados)
+      const { data: bandaBData, error: bandaBError } = await supabase
+        .from('banda_b_politicos')
+        .select('*')
+        .eq('municipio_id', municipioId)
+        .order('esfera');
+      if (bandaBError) {
+        console.error('Erro ao buscar Banda B:', bandaBError);
+      } else {
+        setBandaBPoliticos(bandaBData || []);
+      }
+
+      // Buscar Emendas/Programas
+      const { data: programasData, error: programasError } = await supabase
+        .from('programas_emendas')
+        .select('*')
+        .eq('municipio_id', municipioId)
+        .order('created_at', { ascending: false });
+      if (programasError) {
+        console.error('Erro ao buscar emendas/programas:', programasError);
+      } else {
+        setProgramasEmendas(programasData || []);
+      }
+
+      // Buscar candidatos a prefeito
+      let candidatosData: CandidatoPrefeito[] | null = null;
+      let candidatosError: any = null;
+
+      // Tentar por municipio_id (numérico), se aplicável
+      const municipioIdNum = /^\d+$/.test(municipioId) ? parseInt(municipioId, 10) : null;
+      if (municipioIdNum !== null) {
+        const res = await supabase
+          .from('candidatos_prefeito_ba_2024')
+          .select('*')
+          .eq('municipio_id', municipioIdNum)
+          .order('votos', { ascending: false });
+        candidatosData = (res.data || []) as any;
+        candidatosError = res.error;
+      }
+
+      // Se não veio dado pelo ID, tenta por nome do município (igualdade exata)
+      if (!candidatosData || candidatosData.length === 0) {
+        const { data: municipioNomeData, error: municipioNomeError } = await supabase
+          .from('municipios')
+          .select('municipio')
+          .eq('id', municipioId)
+          .single();
+
+        if (!municipioNomeError && municipioNomeData?.municipio) {
+          const resByName = await supabase
+            .from('candidatos_prefeito_ba_2024')
+            .select('*')
+            .eq('municipio', municipioNomeData.municipio)
+            .order('votos', { ascending: false });
+
+          if (!resByName.error) {
+            const nomeAlvo = String(municipioNomeData.municipio || '').trim();
+            const apenasMesmoMunicipio = (resByName.data || []).filter((c: any) => String(c.municipio || '').trim() === nomeAlvo);
+            candidatosData = (apenasMesmoMunicipio || []) as any;
+            candidatosError = null;
+          } else {
+            candidatosError = resByName.error;
+          }
+        } else {
+          candidatosError = municipioNomeError;
+        }
+      }
+
+      console.log('Candidatos a prefeito:', candidatosData, 'Erro:', candidatosError);
       if (candidatosError) {
         console.error('Erro ao buscar candidatos a prefeito:', candidatosError);
+        setCandidatosPrefeito([]);
       } else {
-        // Adicionar posição e porcentagem aos candidatos
-        const totalVotos = (candidatosData || []).reduce((sum, c) => sum + (c.votos || 0), 0);
-        const candidatosComPosicao = (candidatosData || []).map((candidato, index) => ({
-          ...candidato,
-          posicao: index + 1,
-          porcentagem: totalVotos > 0 ? (candidato.votos / totalVotos) * 100 : 0
-        }));
-        setCandidatosPrefeito(candidatosComPosicao);
+        // Garantir porcentagem e posicao como fallback se não vierem da tabela
+        const lista = candidatosData || [];
+        const totalVotos = lista.reduce((s: number, c: any) => s + (Number(c.votos) || 0), 0);
+        const enriquecidos = lista.map((c: any, i: number) => {
+          // Usar o valor de porcentagem já presente na tabela (variações de nome), com fallback de cálculo
+          const rawPct = (
+            c.porcentagem ?? c.percentual ?? c.percentual_votos ?? c.percentualTotal ?? c.porcent_votos ?? c.pct
+          );
+
+          let pctNum: number | null = null;
+          if (typeof rawPct === 'number' && Number.isFinite(rawPct)) {
+            pctNum = rawPct;
+          } else if (typeof rawPct === 'string') {
+            const normalized = rawPct.replace('%', '').replace(',', '.').trim();
+            const parsed = parseFloat(normalized);
+            if (Number.isFinite(parsed)) pctNum = parsed;
+          }
+
+          const finalPct = pctNum !== null
+            ? pctNum
+            : (totalVotos > 0 ? ((Number(c.votos) || 0) / totalVotos) * 100 : 0);
+
+          return {
+            ...c,
+            posicao: c.posicao ?? i + 1,
+            porcentagem: finalPct,
+            partido: c.partido || '—'
+          };
+        });
+        setCandidatosPrefeito(enriquecidos);
       }
     } catch (error) {
       console.error('Erro ao buscar vereadores:', error);
@@ -463,8 +1502,93 @@ export default function MunicipioDetalhes() {
   };
 
   const handleEditField = (field: string, currentValue: string) => {
+    if (userNivel === 1) {
+      alert('Usuários de nível 1 não podem editar.');
+      return;
+    }
     setEditingField(field);
     setEditValue(currentValue);
+  };
+
+  const handleEditPresidente = () => {
+    if (userNivel === 1) {
+      alert('Usuários de nível 1 não podem editar.');
+      return;
+    }
+    // Prefill form with existing values
+    setPresidenteForm({
+      nome: municipio?.presidente_camara || '',
+      partido: municipio?.presidente_camara_partido || '',
+      votos: municipio?.presidente_camara_votos_vereador || ''
+    });
+    setEditingField('presidente_camara_group');
+  };
+
+  const handleOpenFamilia = () => {
+    if (userNivel === 1) {
+      alert('Usuários de nível 1 não podem editar.');
+      return;
+    }
+    setFamiliaForm({
+      primeira_dama: municipio?.primeira_dama || '',
+      filhos_prefeito: municipio?.filhos_prefeito || ''
+    });
+    setEditingField('familia_prefeito_group');
+  };
+
+  const handleSavePresidente = async () => {
+    if (!municipio) return;
+    setIsSaving(true);
+    try {
+      const updates: any = {
+        presidente_camara: presidenteForm.nome || null,
+        presidente_camara_partido: presidenteForm.partido || null,
+        presidente_camara_votos_vereador: presidenteForm.votos || null
+      };
+
+      const { error } = await supabase
+        .from('municipios')
+        .update(updates)
+        .eq('id', municipio.id);
+
+      if (error) throw error;
+
+      setMunicipio(prev => prev ? { ...prev, ...updates } as MunicipioDetalhado : prev);
+      setEditingField(null);
+      alert('Presidente da Câmara atualizado com sucesso!');
+    } catch (err) {
+      console.error('Erro ao salvar presidente da câmara:', err);
+      alert('Erro ao atualizar Presidente da Câmara. Tente novamente.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleSaveFamilia = async () => {
+    if (!municipio) return;
+    setIsSaving(true);
+    try {
+      const updates: any = {
+        primeira_dama: familiaForm.primeira_dama || null,
+        filhos_prefeito: familiaForm.filhos_prefeito || null
+      };
+
+      const { error } = await supabase
+        .from('municipios')
+        .update(updates)
+        .eq('id', municipio.id);
+
+      if (error) throw error;
+
+      setMunicipio(prev => prev ? { ...prev, ...updates } as MunicipioDetalhado : prev);
+      setEditingField(null);
+      alert('Família do Prefeito atualizada com sucesso!');
+    } catch (err) {
+      console.error('Erro ao salvar família do prefeito:', err);
+      alert('Erro ao atualizar Família do Prefeito. Tente novamente.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleSaveField = async () => {
@@ -518,11 +1642,15 @@ export default function MunicipioDetalhes() {
         'eleitores': 'Número de Eleitores',
         'data_emancipacao': 'Data de Emancipação',
         'data_aniversario': 'Data de Aniversário',
+        'aniversario': 'Aniversário do Prefeito',
         'nome_prefeito': 'Nome do Prefeito',
         'vice_prefeito': 'Vice-Prefeito',
         'presidente_camara': 'Presidente da Câmara',
         'presidente_camara_partido': 'Partido do Presidente da Câmara',
         'observacoes_municipio': 'Observações do Município',
+        'familia_prefeito': 'Família do Prefeito',
+        'primeira_dama': 'Primeira-dama(o)',
+        'filhos_prefeito': 'Filhos do Prefeito',
         'lideranca': 'Liderança',
         'banda_b': 'Banda B'
       };
@@ -599,7 +1727,46 @@ export default function MunicipioDetalhes() {
     }
   };
 
+  // Formata datas em ordem dia/mês/ano. Aceita formatos como YYYY-MM-DD, DD/MM/YYYY ou "11 de julho de 1980".
+  const formatDateDMY = (raw?: string | null) => {
+    if (!raw) return 'Não informado';
+    const v = String(raw).trim();
+    // ISO: 1980-07-11
+    const isoMatch = v.match(/^\d{4}-\d{2}-\d{2}/);
+    if (isoMatch) {
+      const [y, m, d] = v.substring(0, 10).split('-');
+      return `${d}/${m}/${y}`;
+    }
+    // dd/mm/yyyy
+    const dmyMatch = v.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (dmyMatch) {
+      const d = dmyMatch[1].padStart(2, '0');
+      const m = dmyMatch[2].padStart(2, '0');
+      const y = dmyMatch[3];
+      return `${d}/${m}/${y}`;
+    }
+    // "11 de julho" ou "11 de julho de 1980"
+    const monthNames: { [k: string]: string } = {
+      'janeiro': '01','fevereiro': '02','março': '03','marco': '03','abril': '04','maio': '05','junho': '06','julho': '07','agosto': '08','setembro': '09','outubro': '10','novembro': '11','dezembro': '12'
+    };
+    const textoMatch = v.toLowerCase().match(/^(\d{1,2})\s+de\s+([a-zçãéíóú]+)(?:\s+de\s+(\d{4}))?$/);
+    if (textoMatch) {
+      const d = textoMatch[1].padStart(2, '0');
+      const m = monthNames[textoMatch[2]] || '';
+      const y = textoMatch[3];
+      if (m) {
+        return y ? `${d}/${m}/${y}` : `${d}/${m}`;
+      }
+    }
+    // Fallback: retorna o original
+    return v;
+  };
+
   const handleEditDeputado = (type: 'federal' | 'estadual' | 'vereador', id: string, field: string, currentValue: string) => {
+    if (userNivel === 1) {
+      alert('Usuários de nível 1 não podem editar.');
+      return;
+    }
     setEditingDeputado({ type, id, field });
     setEditingDeputadoValue(currentValue);
   };
@@ -748,480 +1915,1676 @@ export default function MunicipioDetalhes() {
           </div>
         )}
 
-        {/* Informações Básicas */}
+        {/* Informações Básicas do Município */}
         <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-          <h2 className="text-xl font-bold text-psd-blue mb-4 text-center">Informações Básicas</h2>
+          <h2 className="text-xl font-bold text-psd-blue mb-4 text-center">Informações Básicas do Município</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <InfoCard
               title="População"
               value={municipio.populacao}
               icon={<Users />}
-              isEditable={true}
-              onEditPress={() => handleEditField('populacao', municipio.populacao || '')}
+              isEditable={userNivel !== 1}
+              onEditPress={userNivel !== 1 ? () => handleEditField('populacao', municipio.populacao || '') : undefined}
             />
             <InfoCard
               title="Eleitores"
               value={municipio.eleitores}
               icon={<Users />}
-              isEditable={true}
-              onEditPress={() => handleEditField('eleitores', municipio.eleitores || '')}
+              isEditable={userNivel !== 1}
+              onEditPress={userNivel !== 1 ? () => handleEditField('eleitores', municipio.eleitores || '') : undefined}
+            />
+            <InfoCard
+              title="Instagram da Prefeitura"
+              value={municipio.instagram_prefeitura}
+              icon={<Instagram />}
+              isEditable={userNivel !== 1}
+              isLink={true}
+              onEditPress={() => handleEditField('instagram_prefeitura', municipio.instagram_prefeitura || '')}
             />
             <InfoCard
               title="Data de Emancipação"
               value={municipio.data_emancipacao}
-              icon={<Calendar />}
-              isEditable={true}
-              onEditPress={() => handleEditField('data_emancipacao', municipio.data_emancipacao || '')}
-            />
-            <InfoCard
-              title="Aniversário"
-              value={municipio.aniversario}
-              icon={<Calendar />}
-              isEditable={true}
-              onEditPress={() => handleEditField('aniversario', municipio.aniversario || '')}
+              icon={<Users />}
+              isEditable={userNivel !== 1}
+              onEditPress={userNivel !== 1 ? () => handleEditField('data_emancipacao', municipio.data_emancipacao || '') : undefined}
             />
           </div>
           
-          {/* Observações do Município */}
-          {municipio.observacoes_municipio && (
-            <div className="mt-6 p-4 bg-gray-50 rounded-lg border">
-              <h3 className="text-lg font-semibold text-gray-800 mb-2">Observações do Município</h3>
+        </div>
+
+        {/* Observações Adicionais */}
+        <details className="bg-white rounded-lg shadow-sm p-6 mb-6">
+          <summary className="flex items-center justify-between mb-4 cursor-pointer">
+            <h2 className="text-xl font-bold text-psd-blue mb-0 text-center">Observações Adicionais</h2>
+          </summary>
+
+          {municipio.observacoes_municipio ? (
+            <div className="p-4 bg-gray-50 rounded-lg border">
               <p className="text-gray-700 whitespace-pre-wrap">{municipio.observacoes_municipio}</p>
-              <button 
-                onClick={() => handleEditField('observacoes_municipio', municipio.observacoes_municipio || '')}
-                className="mt-2 text-blue-600 hover:text-blue-800 text-sm font-medium"
-              >
-                Editar observações
-              </button>
+              {userNivel !== 1 && (
+                <button 
+                  onClick={() => handleEditField('observacoes_municipio', municipio.observacoes_municipio || '')}
+                  className="mt-2 text-blue-600 hover:text-blue-800 text-sm font-medium"
+                >
+                  Editar observações
+                </button>
+              )}
             </div>
-          )}
-          
-          {!municipio.observacoes_municipio && (
-            <div className="mt-6 p-4 bg-gray-50 rounded-lg border border-dashed">
+          ) : (
+            <div className="p-4 bg-gray-50 rounded-lg border border-dashed">
               <div className="text-center">
                 <p className="text-gray-500 mb-2">Nenhuma observação cadastrada</p>
-                <button 
-                  onClick={() => handleEditField('observacoes_municipio', '')}
-                  className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-                >
-                  Adicionar observações
-                </button>
+                {userNivel !== 1 && (
+                  <button
+                    onClick={() => handleEditField('observacoes_municipio', '')}
+                    className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                  >
+                    Editar observação
+                  </button>
+                )}
               </div>
             </div>
           )}
-        </div>
+        </details>
 
         {/* Informações do Prefeito */}
         <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-          <h2 className="text-xl font-bold text-psd-blue mb-4 text-center">Prefeito</h2>
+          <h2 className="text-xl font-bold text-psd-blue mb-4 text-center">Informações do Prefeito</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <InfoCard
               title="Nome"
               value={municipio.prefeito}
               icon={<User />}
-              isEditable={true}
-              onEditPress={() => handleEditField('prefeito', municipio.prefeito || '')}
+              isEditable={userNivel !== 1}
+              onEditPress={userNivel !== 1 ? () => handleEditField('prefeito', municipio.prefeito || '') : undefined}
             />
             <InfoCard
               title="Vice-Prefeito"
               value={municipio.vice_prefeito}
               icon={<User />}
-              isEditable={true}
-              onEditPress={() => handleEditField('vice_prefeito', municipio.vice_prefeito || '')}
+              isEditable={userNivel !== 1}
+              onEditPress={userNivel !== 1 ? () => handleEditField('vice_prefeito', municipio.vice_prefeito || '') : undefined}
             />
             <InfoCard
               title="Partido"
               value={municipio.partido}
               icon={<Building />}
-              isEditable={true}
-              onEditPress={() => handleEditField('partido', municipio.partido || '')}
+              isEditable={userNivel !== 1}
+              onEditPress={userNivel !== 1 ? () => handleEditField('partido', municipio.partido || '') : undefined}
+            />
+            <InfoCard
+              title="Aniversário do Prefeito"
+              value={formatDateDMY(municipio.aniversario)}
+              icon={<Calendar />}
+              isEditable={userNivel !== 1}
+              onEditPress={userNivel !== 1 ? () => handleEditField('aniversario', municipio.aniversario || '') : undefined}
             />
             <InfoCard
               title="Votos Recebidos"
               value={municipio.votos_recebidos}
               icon={<Award />}
-              isEditable={true}
-              onEditPress={() => handleEditField('votos_recebidos', municipio.votos_recebidos || '')}
+              isEditable={userNivel !== 1}
+              onEditPress={userNivel !== 1 ? () => handleEditField('votos_recebidos', municipio.votos_recebidos || '') : undefined}
             />
             <InfoCard
               title="Telefone"
               value={municipio.telefone}
               icon={<Phone />}
               isLink={true}
-              isEditable={true}
-              onEditPress={() => handleEditField('telefone', municipio.telefone || '')}
+              isEditable={userNivel !== 1}
+              onEditPress={userNivel !== 1 ? () => handleEditField('telefone', municipio.telefone || '') : undefined}
             />
             <InfoCard
               title="Instagram do Prefeito"
               value={municipio.instagram_prefeito}
               icon={<Instagram />}
-              isEditable={true}
+              isEditable={userNivel !== 1}
               isLink={true}
               onEditPress={() => handleEditField('instagram_prefeito', municipio.instagram_prefeito || '')}
             />
-            <InfoCard
-              title="Instagram da Prefeitura"
-              value={municipio.instagram_prefeitura}
-              icon={<Instagram />}
-              isEditable={true}
-              isLink={true}
-              onEditPress={() => handleEditField('instagram_prefeitura', municipio.instagram_prefeitura || '')}
-            />
-            <InfoCard
-              title="Liderança"
-              value={municipio.lideranca}
-              icon={<User />}
-              isEditable={true}
-              onEditPress={() => handleEditField('lideranca', municipio.lideranca || '')}
-            />
-            <InfoCard
-              title="Banda B"
-              value={municipio.banda_b}
-              icon={<Radio />}
-              isEditable={true}
-              onEditPress={() => handleEditField('banda_b', municipio.banda_b || '')}
-            />
+            {/* Card removido conforme solicitação: Liderança será gerenciada na seção inferior */}
+            {/* Card removido conforme solicitação: Deputados Banda B será gerenciado na seção inferior */}
+            {/* Card removido conforme solicitação: Família do Prefeito será gerenciado na seção inferior */}
           </div>
         </div>
 
         {/* Candidatos a Prefeito - Eleições 2024 */}
-        {candidatosPrefeito.length > 0 && (
-          <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-            <h2 className="text-xl font-bold text-psd-blue mb-4 text-center">Eleições 2024 - Candidatos a Prefeito</h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {candidatosPrefeito.filter(c => c.posicao === 1).map(candidato => (
-                <div key={candidato.id} className="bg-gradient-to-r from-yellow-400 to-yellow-500 rounded-lg p-4 text-white">
-                  <div className="flex items-center mb-2">
-                    <span className="text-2xl mr-2">🏆</span>
-                    <h3 className="font-bold text-lg">1º Colocado (Eleito)</h3>
-                  </div>
-                  <p className="font-semibold text-lg">{candidato.nome}</p>
-                  <p className="text-sm opacity-90">{candidato.partido}</p>
-                  <p className="text-sm font-medium mt-2">
-                    {candidato.votos.toLocaleString('pt-BR')} votos ({candidato.porcentagem.toFixed(2)}%)
-                  </p>
-                </div>
-              ))}
-              
-              {candidatosPrefeito.filter(c => c.posicao === 2).map(candidato => (
-                <div key={candidato.id} className="bg-gradient-to-r from-gray-400 to-gray-500 rounded-lg p-4 text-white">
-                  <div className="flex items-center mb-2">
-                    <span className="text-2xl mr-2">🥈</span>
-                    <h3 className="font-bold text-lg">2º Colocado</h3>
-                  </div>
-                  <p className="font-semibold text-lg">{candidato.nome}</p>
-                  <p className="text-sm opacity-90">{candidato.partido}</p>
-                  <p className="text-sm font-medium mt-2">
-                    {candidato.votos.toLocaleString('pt-BR')} votos ({candidato.porcentagem.toFixed(2)}%)
-                  </p>
-                </div>
-              ))}
-              
-              {candidatosPrefeito.filter(c => c.posicao === 3).map(candidato => (
-                <div key={candidato.id} className="bg-gradient-to-r from-orange-400 to-orange-500 rounded-lg p-4 text-white">
-                  <div className="flex items-center mb-2">
-                    <span className="text-2xl mr-2">🥉</span>
-                    <h3 className="font-bold text-lg">3º Colocado</h3>
-                  </div>
-                  <p className="font-semibold text-lg">{candidato.nome}</p>
-                  <p className="text-sm opacity-90">{candidato.partido}</p>
-                  <p className="text-sm font-medium mt-2">
-                    {candidato.votos.toLocaleString('pt-BR')} votos ({candidato.porcentagem.toFixed(2)}%)
-                  </p>
-                </div>
-              ))}
+        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-bold text-psd-blue mb-0 text-center">Eleições 2024 - Candidatos a Prefeito</h2>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={fetchVereadores}
+                className="bg-blue-100 hover:bg-blue-200 p-2 rounded-full"
+                title="Atualizar candidatos"
+              >
+                <RefreshCw size={18} className="text-psd-blue" />
+              </button>
             </div>
           </div>
-        )}
+
+          {candidatosPrefeito.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {candidatosPrefeito.map((candidato) => {
+                const pos = Number(candidato.posicao) || 0;
+                const icon = pos === 1 ? '🏆' : pos === 2 ? '🥈' : pos === 3 ? '🥉' : '';
+                const situacaoLabel = candidato.situacao ? `(${String(candidato.situacao)})` : (pos === 1 ? '(Eleito)' : '');
+                const votosFmt = Number(candidato.votos || 0).toLocaleString('pt-BR');
+                const pct = typeof candidato.porcentagem === 'number' ? candidato.porcentagem : 0;
+                const pctText = `${pct.toFixed(2)}%`;
+                const pctBarWidth = `${Math.min(Math.max(pct, 0), 100)}%`;
+                return (
+                  <div key={candidato.id} className="bg-white border border-gray-200 rounded-lg p-4 text-psd-dark relative group">
+                    <div className="flex items-center mb-2">
+                      <span className="text-2xl mr-3">{icon}</span>
+                      <h3 className="font-semibold text-gray-700">
+                        {pos}º Colocado <span className="text-sm font-normal text-gray-500">{situacaoLabel}</span>
+                      </h3>
+                    </div>
+
+                    <div className="mt-1">
+                      <p className="font-bold text-lg text-psd-dark">
+                        {String(candidato.nome || '—').toUpperCase()} <span className="font-normal">({String(candidato.partido || '—').toUpperCase()})</span>
+                      </p>
+                      {candidato.nome_completo && (
+                        <p className="text-xs text-gray-500 mt-1">{candidato.nome_completo}</p>
+                      )}
+                      <div className="mt-3 grid grid-cols-2 gap-2 items-center">
+                        <div>
+                          <p className="text-sm text-gray-600 font-medium">{votosFmt} votos</p>
+                          <p className="text-sm text-gray-600 font-medium">{pctText}</p>
+                        </div>
+                        <div className="flex items-center justify-end">
+                          {typeof candidato.numero === 'number' && (
+                            <span className="px-2 py-1 border rounded text-xs text-gray-700">Nº {candidato.numero}</span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Barra de percentual */}
+                      <div className="mt-3">
+                        <div className="w-full bg-gray-200 rounded h-2">
+                          <div className="bg-psd-blue h-2 rounded" style={{ width: pctBarWidth }} />
+                        </div>
+                      </div>
+
+                      {/* Detalhes extras */}
+                      <details className="mt-3">
+                        <summary className="cursor-pointer text-sm text-blue-700">Mais detalhes</summary>
+                        <div className="mt-2 text-sm text-gray-700 space-y-1">
+                          <p><span className="text-gray-500">Situação:</span> {candidato.situacao || '—'}</p>
+                          <p><span className="text-gray-500">Município:</span> {candidato.municipio || '—'}</p>
+                          {candidato.updated_at && (
+                            <p><span className="text-gray-500">Atualizado em:</span> {new Date(String(candidato.updated_at)).toLocaleString('pt-BR')}</p>
+                          )}
+                          {candidato.created_at && (
+                            <p><span className="text-gray-500">Criado em:</span> {new Date(String(candidato.created_at)).toLocaleString('pt-BR')}</p>
+                          )}
+                        </div>
+                      </details>
+                    </div>
+
+                    {pos === 3 && (
+                      <div className="absolute -top-2 right-2 hidden group-hover:block bg-white border border-gray-200 shadow-lg rounded-md p-3 text-xs w-64 z-10">
+                        <p className="font-semibold mb-1">3º colocado — detalhes</p>
+                        <p><span className="text-gray-500">Nome:</span> {String(candidato.nome || '—')}</p>
+                        <p>
+                          <span className="text-gray-500">Partido:</span>{' '}
+                          {candidato.partido ? renderPartidoName(candidato.partido) : '—'}
+                        </p>
+                        <p><span className="text-gray-500">Votos:</span> {votosFmt}</p>
+                        <p><span className="text-gray-500">Percentual:</span> {pctText}</p>
+                        {typeof candidato.numero === 'number' && (
+                          <p><span className="text-gray-500">Número:</span> {candidato.numero}</p>
+                        )}
+                        {candidato.situacao && (
+                          <p><span className="text-gray-500">Situação:</span> {candidato.situacao}</p>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="text-center text-gray-500 py-8">Nenhum candidato a prefeito cadastrado para este município.</div>
+          )}
+        </div>
 
         {/* Transferências Governamentais */}
         <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold text-psd-blue">Transferências Governamentais</h2>
-            <button
-              onClick={fetchTransferencias}
-              className="bg-blue-100 hover:bg-blue-200 p-2 rounded-full"
-              disabled={loadingTransferencias}
-            >
-              <RefreshCw size={20} className={`text-psd-blue ${loadingTransferencias ? 'animate-spin' : ''}`} />
-            </button>
-          </div>
+          <details className="group">
+            <summary className="cursor-pointer flex items-center justify-between">
+              <h2 className="text-xl font-bold text-psd-blue">Transferências Governamentais</h2>
+              <button
+                onClick={fetchTransferencias}
+                className="bg-blue-100 hover:bg-blue-200 p-2 rounded-full"
+                disabled={loadingTransferencias}
+              >
+                <RefreshCw size={20} className={`text-psd-blue ${loadingTransferencias ? 'animate-spin' : ''}`} />
+              </button>
+            </summary>
+            <div className="mt-4">
+              {loadingTransferencias ? (
+                <div className="flex items-center justify-center py-8 bg-gray-100 rounded-lg">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-psd-blue mr-3"></div>
+                  <span className="text-gray-600">Carregando transferências...</span>
+                </div>
+              ) : (
+                <>
+                  {/* Estatísticas */}
+                  {estatisticas && (
+                    <div className="bg-blue-50 rounded-lg p-4 mb-6">
+                      <h3 className="text-lg font-bold text-psd-blue mb-4 text-center">Resumo</h3>
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="text-center">
+                          <div className="text-lg font-bold text-psd-blue">{estatisticas.total_transferencias}</div>
+                          <div className="text-sm text-gray-600">Total de Transferências</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-lg font-bold text-psd-blue">{formatCurrency(estatisticas.valor_total)}</div>
+                          <div className="text-sm text-gray-600">Valor Total</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-lg font-bold text-psd-blue">{formatCurrency(estatisticas.valor_total_empenhado)}</div>
+                          <div className="text-sm text-gray-600">Total Empenhado</div>
+                        </div>
+                        <div className="text-center">
+                          <div className="text-lg font-bold text-psd-blue">{Object.keys(estatisticas.por_ministerio).length}</div>
+                          <div className="text-sm text-gray-600">Ministérios</div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
-          {loadingTransferencias ? (
-            <div className="flex items-center justify-center py-8 bg-gray-100 rounded-lg">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-psd-blue mr-3"></div>
-              <span className="text-gray-600">Carregando transferências...</span>
+                  {/* Lista de Transferências */}
+                  {transferencias.length > 0 ? (
+                    <div className="space-y-4 max-h-96 overflow-y-auto">
+                      {transferencias.map((transferencia) => (
+                        <div key={transferencia.id} className="border rounded-lg p-4">
+                          <div className="flex justify-between items-start mb-3">
+                            <h4 className="font-bold text-psd-blue flex-1 mr-3">{transferencia.ministerio}</h4>
+                            <span className={`px-2 py-1 rounded-full text-white text-xs font-bold ${getSituacaoColor(transferencia.situacao_proposta)}`}>
+                              {transferencia.situacao_proposta}
+                            </span>
+                          </div>
+                          <p className="text-sm text-gray-600 mb-2">{transferencia.acao}</p>
+                          <p className="text-sm text-gray-600 mb-3">{transferencia.proposta}</p>
+                          <div className="grid grid-cols-2 gap-4 mb-3">
+                            <div>
+                              <span className="text-xs text-gray-500">Valor:</span>
+                              <div className="font-bold text-green-600">{formatCurrency(transferencia.valor)}</div>
+                            </div>
+                            <div>
+                              <span className="text-xs text-gray-500">Empenhado:</span>
+                              <div className="font-bold text-green-600">{formatCurrency(transferencia.valor_empenho)}</div>
+                            </div>
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            <p>Convênio: {transferencia.convenio}</p>
+                            <p>Empenho: {transferencia.empenho}</p>
+                            <p>Data: {new Date(transferencia.data_emissao).toLocaleDateString('pt-BR')}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 bg-gray-100 rounded-lg">
+                      <DollarSign size={48} className="text-gray-400 mx-auto mb-4" />
+                      <p className="text-gray-600 mb-2">Nenhuma transferência encontrada</p>
+                      <p className="text-sm text-gray-500 italic">Os dados podem não estar disponíveis para este município</p>
+                    </div>
+                  )}
+                </>
+              )}
             </div>
-          ) : (
-            <>
-              {/* Estatísticas */}
-              {estatisticas && (
-                <div className="bg-blue-50 rounded-lg p-4 mb-6">
-                  <h3 className="text-lg font-bold text-psd-blue mb-4 text-center">Resumo</h3>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                    <div className="text-center">
-                      <div className="text-lg font-bold text-psd-blue">{estatisticas.total_transferencias}</div>
-                      <div className="text-sm text-gray-600">Total de Transferências</div>
+          </details>
+        </div>
+
+        {/* Emendas e Programas */}
+        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+          <details className="group">
+            <summary className="cursor-pointer flex items-center justify-between">
+              <h2 className="text-xl font-bold text-psd-blue mb-0 text-center">Emendas e Programas</h2>
+              {userNivel !== 1 && (
+                <button
+                  onClick={handleOpenAddPrograma}
+                  className="bg-blue-600 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-blue-700"
+                  title="Adicionar emenda/programa"
+                >
+                  <Plus size={16} />
+                </button>
+              )}
+            </summary>
+            <div className="mt-4">
+              {programasEmendas && programasEmendas.length > 0 ? (
+                <div className="space-y-3 max-h-64 overflow-y-auto">
+                  {programasEmendas.map((p) => (
+                    <div key={p.id} className="border rounded-lg p-3 bg-indigo-50">
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1">
+                          <p className="text-sm text-gray-600">
+                            <span className="font-semibold text-psd-blue mr-2">{p.esfera === 'estadual' ? 'Estadual' : 'Federal'}</span>
+                            {p.parlamentar_tipo ? (
+                              <span className="px-2 py-0.5 bg-blue-100 text-blue-800 text-xs rounded-full mr-2">
+                                {p.parlamentar_tipo === 'deputado_federal' ? 'Deputado Federal' : p.parlamentar_tipo === 'deputado_estadual' ? 'Deputado Estadual' : 'Senador'}
+                              </span>
+                            ) : null}
+                          </p>
+                          <h4 className="font-bold text-gray-900">{p.parlamentar_nome || '—'}</h4>
+                          <p className="text-sm text-gray-700 mt-1">
+                            <span className="font-medium">{p.orgao_sigla || ''}</span>
+                            {p.orgao_nome ? ` • ${p.orgao_nome}` : ''}
+                          </p>
+                          {p.area && (
+                            <p className="text-xs text-gray-500">Área: {p.area}</p>
+                          )}
+                          {p.observacoes && (
+                            <p className="text-xs text-gray-500 italic mt-1">{p.observacoes}</p>
+                          )}
+                        </div>
+                        {userNivel !== 1 && (
+                          <div className="flex items-center ml-3">
+                            <button
+                              onClick={() => handleOpenEditPrograma(p)}
+                              className="text-indigo-600 hover:text-indigo-800 mr-2"
+                              title="Editar emenda/programa"
+                            >
+                              <Edit size={14} />
+                            </button>
+                            <button
+                              onClick={() => handleOpenDeletePrograma(p)}
+                              className="text-red-600 hover:text-red-800"
+                              title="Excluir emenda/programa"
+                            >
+                              <X size={14} />
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                    <div className="text-center">
-                      <div className="text-lg font-bold text-psd-blue">{formatCurrency(estatisticas.valor_total)}</div>
-                      <div className="text-sm text-gray-600">Valor Total</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-lg font-bold text-psd-blue">{formatCurrency(estatisticas.valor_total_empenhado)}</div>
-                      <div className="text-sm text-gray-600">Total Empenhado</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="text-lg font-bold text-psd-blue">{Object.keys(estatisticas.por_ministerio).length}</div>
-                      <div className="text-sm text-gray-600">Ministérios</div>
-                    </div>
-                  </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-6 bg-gray-100 rounded-lg">
+                  <FileText size={36} className="text-gray-400 mx-auto mb-3" />
+                  <p className="text-gray-600 mb-2">Nenhuma emenda/programa cadastrado</p>
+                  <p className="text-sm text-gray-500 italic">Use o botão + para adicionar</p>
                 </div>
               )}
+            </div>
+          </details>
+        </div>
 
-              {/* Lista de Transferências */}
-              {transferencias.length > 0 ? (
-                <div className="space-y-4 max-h-96 overflow-y-auto">
-                  {transferencias.map((transferencia) => (
-                    <div key={transferencia.id} className="border rounded-lg p-4">
-                      <div className="flex justify-between items-start mb-3">
-                        <h4 className="font-bold text-psd-blue flex-1 mr-3">{transferencia.ministerio}</h4>
-                        <span className={`px-2 py-1 rounded-full text-white text-xs font-bold ${getSituacaoColor(transferencia.situacao_proposta)}`}>
-                          {transferencia.situacao_proposta}
-                        </span>
-                      </div>
-                      <p className="text-sm text-gray-600 mb-2">{transferencia.acao}</p>
-                      <p className="text-sm text-gray-600 mb-3">{transferencia.proposta}</p>
-                      <div className="grid grid-cols-2 gap-4 mb-3">
-                        <div>
-                          <span className="text-xs text-gray-500">Valor:</span>
-                          <div className="font-bold text-green-600">{formatCurrency(transferencia.valor)}</div>
+        {/* Deputados Federais */}
+        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+          <details className="group">
+            <summary className="cursor-pointer flex items-center justify-between">
+              <h2 className="text-xl font-bold text-psd-blue mb-0 text-center">Top 5 Deputados Federais Mais Votados</h2>
+              <span className="text-sm text-gray-500 ml-2">Clique para expandir</span>
+            </summary>
+            <div className="mt-4">
+              {deputadosFederais.length > 0 ? (
+                <div className="space-y-3">
+                  {deputadosFederais.map((deputado) => (
+                    <div key={deputado.id} className="border rounded-lg p-4 bg-blue-50">
+                      <div className="flex justify-between items-start mb-2">
+                        <div className="flex items-center flex-1">
+                          <span className="bg-psd-blue text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold mr-3">
+                            {deputado.posicao}º
+                          </span>
+                          <div className="flex-1">
+                            <div className="flex items-center justify-between">
+                              <h4 className="font-bold text-gray-900">{deputado.nome || 'Nome não informado'}</h4>
+                            </div>
+                            {renderEditDeputadoField(deputado, 'nome', 'Nome', 'federal')}
+                            {renderEditDeputadoField(deputado, 'partido', 'Partido', 'federal')}
+                            {renderEditDeputadoField(deputado, 'votos_recebidos', 'Votos Recebidos', 'federal')}
+                          </div>
                         </div>
-                        <div>
-                          <span className="text-xs text-gray-500">Empenhado:</span>
-                          <div className="font-bold text-green-600">{formatCurrency(transferencia.valor_empenho)}</div>
-                        </div>
                       </div>
-                      <div className="text-xs text-gray-500">
-                        <p>Convênio: {transferencia.convenio}</p>
-                        <p>Empenho: {transferencia.empenho}</p>
-                        <p>Data: {new Date(transferencia.data_emissao).toLocaleDateString('pt-BR')}</p>
+                      {deputado.observacoes && (
+                        <div className="mt-2 ml-11">
+                          <p className="text-xs text-gray-500 italic">{deputado.observacoes}</p>
+                        </div>
+                      )}
+                      <div className="ml-11">
+                        {renderEditDeputadoField(deputado, 'observacoes', 'Observações', 'federal')}
                       </div>
                     </div>
                   ))}
                 </div>
               ) : (
                 <div className="text-center py-8 bg-gray-100 rounded-lg">
-                  <DollarSign size={48} className="text-gray-400 mx-auto mb-4" />
-                  <p className="text-gray-600 mb-2">Nenhuma transferência encontrada</p>
-                  <p className="text-sm text-gray-500 italic">Os dados podem não estar disponíveis para este município</p>
+                  <Building size={48} className="text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-600 mb-2">Nenhum deputado federal cadastrado</p>
+                  <p className="text-sm text-gray-500 italic">Clique no botão + para adicionar deputados federais</p>
                 </div>
               )}
-            </>
-          )}
-        </div>
-
-        {/* Deputados Federais */}
-        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-          <h2 className="text-xl font-bold text-psd-blue mb-4 text-center">Top 5 Deputados Federais Mais Votados</h2>
-          {deputadosFederais.length > 0 ? (
-            <div className="space-y-3">
-              {deputadosFederais.map((deputado) => (
-                <div key={deputado.id} className="border rounded-lg p-4 bg-blue-50">
-                  <div className="flex justify-between items-start mb-2">
-                    <div className="flex items-center flex-1">
-                      <span className="bg-psd-blue text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold mr-3">
-                        {deputado.posicao}º
-                      </span>
-                      <div className="flex-1">
-                        <div className="flex items-center justify-between">
-                          <h4 className="font-bold text-gray-900">{deputado.nome || 'Nome não informado'}</h4>
-                          <button
-                            onClick={() => handleEditDeputado('federal', deputado.id, 'nome', deputado.nome || '')}
-                            className="text-blue-600 hover:text-blue-800 ml-2"
-                          >
-                            <Edit size={12} />
-                          </button>
-                        </div>
-                        {renderEditDeputadoField(deputado, 'nome', 'Nome', 'federal')}
-                        {renderEditDeputadoField(deputado, 'partido', 'Partido', 'federal')}
-                        {renderEditDeputadoField(deputado, 'votos_recebidos', 'Votos Recebidos', 'federal')}
-                      </div>
-                    </div>
-                  </div>
-                  {deputado.observacoes && (
-                    <div className="mt-2 ml-11">
-                      <p className="text-xs text-gray-500 italic">{deputado.observacoes}</p>
-                    </div>
-                  )}
-                  <div className="ml-11">
-                    {renderEditDeputadoField(deputado, 'observacoes', 'Observações', 'federal')}
-                  </div>
-                </div>
-              ))}
             </div>
-          ) : (
-            <div className="text-center py-8 bg-gray-100 rounded-lg">
-              <Building size={48} className="text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-600 mb-2">Nenhum deputado federal cadastrado</p>
-              <p className="text-sm text-gray-500 italic">Clique no botão + para adicionar deputados federais</p>
-            </div>
-          )}
+          </details>
         </div>
 
         {/* Deputados Estaduais */}
         <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-          <h2 className="text-xl font-bold text-psd-blue mb-4 text-center">Top 5 Deputados Estaduais Mais Votados</h2>
-          {deputadosEstaduais.length > 0 ? (
-            <div className="space-y-3">
-              {deputadosEstaduais.map((deputado) => (
-                <div key={deputado.id} className="border rounded-lg p-4 bg-green-50">
-                  <div className="flex justify-between items-start mb-2">
-                    <div className="flex items-center flex-1">
-                      <span className="bg-green-600 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold mr-3">
-                        {deputado.posicao}º
-                      </span>
-                      <div className="flex-1">
-                        <div className="flex items-center justify-between">
-                          <h4 className="font-bold text-gray-900">{deputado.nome || 'Nome não informado'}</h4>
-                          <button
-                            onClick={() => handleEditDeputado('estadual', deputado.id, 'nome', deputado.nome || '')}
-                            className="text-green-600 hover:text-green-800 ml-2"
-                          >
-                            <Edit size={12} />
-                          </button>
+          <details className="group">
+            <summary className="cursor-pointer flex items-center justify-between">
+              <h2 className="text-xl font-bold text-psd-blue mb-0 text-center">Top 5 Deputados Estaduais Mais Votados</h2>
+              <span className="text-sm text-gray-500 ml-2">Clique para expandir</span>
+            </summary>
+            <div className="mt-4">
+              {deputadosEstaduais.length > 0 ? (
+                <div className="space-y-3">
+                  {deputadosEstaduais.map((deputado) => (
+                    <div key={deputado.id} className="border rounded-lg p-4 bg-green-50">
+                      <div className="flex justify-between items-start mb-2">
+                        <div className="flex items-center flex-1">
+                          <span className="bg-green-600 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm font-bold mr-3">
+                            {deputado.posicao}º
+                          </span>
+                          <div className="flex-1">
+                            <div className="flex items-center justify-between">
+                              <h4 className="font-bold text-gray-900">{deputado.nome || 'Nome não informado'}</h4>
+                              <button
+                                onClick={() => handleEditDeputado('estadual', deputado.id, 'nome', deputado.nome || '')}
+                                className="text-green-600 hover:text-green-800 ml-2"
+                              >
+                                <Edit size={12} />
+                              </button>
+                            </div>
+                            {renderEditDeputadoField(deputado, 'nome', 'Nome', 'estadual')}
+                            {renderEditDeputadoField(deputado, 'partido', 'Partido', 'estadual')}
+                            {renderEditDeputadoField(deputado, 'votos_recebidos', 'Votos Recebidos', 'estadual')}
+                          </div>
                         </div>
-                        {renderEditDeputadoField(deputado, 'nome', 'Nome', 'estadual')}
-                        {renderEditDeputadoField(deputado, 'partido', 'Partido', 'estadual')}
-                        {renderEditDeputadoField(deputado, 'votos_recebidos', 'Votos Recebidos', 'estadual')}
+                      </div>
+                      {deputado.observacoes && (
+                        <div className="mt-2 ml-11">
+                          <p className="text-xs text-gray-500 italic">{deputado.observacoes}</p>
+                        </div>
+                      )}
+                      <div className="ml-11">
+                        {renderEditDeputadoField(deputado, 'observacoes', 'Observações', 'estadual')}
                       </div>
                     </div>
-                  </div>
-                  {deputado.observacoes && (
-                    <div className="mt-2 ml-11">
-                      <p className="text-xs text-gray-500 italic">{deputado.observacoes}</p>
-                    </div>
-                  )}
-                  <div className="ml-11">
-                    {renderEditDeputadoField(deputado, 'observacoes', 'Observações', 'estadual')}
-                  </div>
+                  ))}
                 </div>
-              ))}
+              ) : (
+                <div className="text-center py-8 bg-gray-100 rounded-lg">
+                  <Building size={48} className="text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-600 mb-2">Nenhum deputado estadual cadastrado</p>
+                  <p className="text-sm text-gray-500 italic">Clique no botão + para adicionar deputados estaduais</p>
+                </div>
+              )}
             </div>
-          ) : (
-            <div className="text-center py-8 bg-gray-100 rounded-lg">
-              <Building size={48} className="text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-600 mb-2">Nenhum deputado estadual cadastrado</p>
-              <p className="text-sm text-gray-500 italic">Clique no botão + para adicionar deputados estaduais</p>
-            </div>
-          )}
+          </details>
         </div>
 
         {/* Mídias Locais */}
+        {/* Família do Prefeito (lista de membros) */}
         <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-          <h2 className="text-xl font-bold text-psd-blue mb-4 text-center">Mídias Locais</h2>
-          {midiasLocais.length > 0 ? (
-            <div className="space-y-3 max-h-64 overflow-y-auto">
-              {midiasLocais.map((midia) => (
-                <div key={midia.id} className="border rounded-lg p-3 flex justify-between items-center bg-purple-50">
-                  <div className="flex-1">
-                    <h4 className="font-bold text-gray-900">{midia.nome || 'Nome não informado'}</h4>
-                    <p className="text-sm text-gray-600">{midia.tipo || 'Tipo não informado'}</p>
-                    {midia.contato && (
-                      <p className="text-xs text-gray-500">Contato: {midia.contato}</p>
-                    )}
-                    {midia.observacoes && (
-                      <p className="text-xs text-gray-500 italic mt-1">{midia.observacoes}</p>
-                    )}
-                  </div>
-                  <button 
-                    onClick={() => alert('Funcionalidade de edição de mídias em desenvolvimento')}
-                    className="bg-purple-600 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-purple-700"
+          <details className="group">
+            <summary className="cursor-pointer flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-psd-blue mb-0 text-center">Família do Prefeito</h2>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleOpenAddFamilia}
+                  className="bg-blue-600 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-blue-700"
+                  title="Adicionar membro da família"
+                >
+                  <Plus size={16} />
+                </button>
+              </div>
+            </summary>
+            <div className="mt-2">
+              {familiaLista.length > 0 ? (
+                <div className="space-y-3 max-h-64 overflow-y-auto">
+                  {familiaLista.map((m) => (
+                    <div key={m.id} className="border rounded-lg p-3 bg-blue-50 relative">
+                      {/* Botão editar */}
+                      {userNivel !== 1 && (
+                        <button
+                          onClick={() => handleOpenEditFamilia(m)}
+                          className="absolute right-3 top-3 bg-white border border-blue-200 text-psd-blue rounded-full w-7 h-7 flex items-center justify-center shadow"
+                          aria-label={`Editar ${m.nome || 'membro da família'}`}
+                          title="Editar"
+                        >
+                          <Edit size={14} />
+                        </button>
+                      )}
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <h4 className="font-bold text-gray-900">{m.nome || 'Nome não informado'}</h4>
+                            {m.tipo && (
+                              <span className="text-xs px-2 py-0.5 rounded bg-blue-200 text-blue-800">
+                                {m.tipo === 'primeira_dama' ? 'Primeira dama(o)' : (m.tipo === 'filho' || m.tipo === 'filha') ? 'Filho(a)' : m.tipo}
+                              </span>
+                            )}
+                          </div>
+                          {m.observacoes && (
+                            <p className="text-sm text-gray-600 mt-1">{m.observacoes}</p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center text-gray-500">
+                  <p className="text-sm italic">Clique no botão + para adicionar membros da família</p>
+                </div>
+              )}
+            </div>
+          </details>
+        </div>
+
+        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+          <details className="group">
+            <summary className="cursor-pointer flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-psd-blue mb-0 text-center">Mídias Locais</h2>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleOpenAddMidia}
+                  className="bg-purple-600 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-purple-700"
+                  title="Adicionar mídia local (rádio/blog)"
+                >
+                  <Plus size={16} />
+                </button>
+              </div>
+            </summary>
+            <div className="mt-2">
+              {midiasLocais.length > 0 ? (
+                <div className="space-y-3 max-h-64 overflow-y-auto">
+                  {midiasLocais.map((midia) => (
+                    <div key={midia.id} className="border rounded-lg p-3 bg-purple-50">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <h4 className="font-bold text-gray-900">{midia.nome || 'Nome não informado'}</h4>
+                            {midia.tipo && (
+                              <span className="text-xs px-2 py-0.5 rounded bg-purple-200 text-purple-800">{midia.tipo}</span>
+                            )}
+                          </div>
+                          {/* Link clicável */}
+                          {midia.contato && (
+                            (() => {
+                              const raw = String(midia.contato).trim();
+                              const isUrl = /^(https?:\/\/)/i.test(raw) || /^www\./i.test(raw) || /\.[a-z]{2,}$/i.test(raw);
+                              const href = isUrl ? (raw.startsWith('http') ? raw : `https://${raw}`) : '';
+                              return (
+                                <div className="mt-1">
+                                  {href ? (
+                                    <a href={href} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-700 underline">
+                                      {raw}
+                                    </a>
+                                  ) : (
+                                    <p className="text-sm text-gray-600">Contato: {raw}</p>
+                                  )}
+                                </div>
+                              );
+                            })()
+                          )}
+                          {midia.observacoes && (
+                            <p className="text-xs text-gray-500 italic mt-1">{midia.observacoes}</p>
+                          )}
+                        </div>
+                        <button 
+                          onClick={() => alert('Funcionalidade de edição de mídias em desenvolvimento')}
+                          className="bg-purple-600 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-purple-700"
+                        >
+                          <Edit size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 bg-gray-100 rounded-lg">
+                  <Radio size={48} className="text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-600 mb-2">Nenhuma mídia local cadastrada</p>
+                  <p className="text-sm text-gray-500 italic">Clique no botão + para adicionar rádios e blogs</p>
+                </div>
+              )}
+            </div>
+          </details>
+        </div>
+
+        {/* Banda B (Locais) — embaixo de Mídias Locais e acima de Lideranças */}
+        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+          <details className="group">
+            <summary className="cursor-pointer flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-psd-blue mb-0 text-center">Banda B</h2>
+              {userNivel !== 1 && (
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleOpenAddBandaBLocal}
+                    className="bg-blue-600 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-blue-700"
+                    title="Adicionar Banda B"
                   >
-                    <Edit size={14} />
+                    <Plus size={16} />
                   </button>
                 </div>
-              ))}
+              )}
+            </summary>
+            <div className="mt-2">
+              {bandaBLocais && bandaBLocais.length > 0 ? (
+                <div className="space-y-3 max-h-64 overflow-y-auto">
+                  {bandaBLocais.map((b) => (
+                    <div key={b.id} className="border rounded-lg p-3 bg-blue-50 relative">
+                      {userNivel !== 1 && (
+                        <div className="absolute right-3 top-3 flex gap-2">
+                          <button
+                            onClick={() => handleOpenEditBandaBLocal(b)}
+                            className="bg-white border border-blue-200 text-psd-blue rounded-full w-7 h-7 flex items-center justify-center shadow"
+                            aria-label={`Editar ${b.nome || 'Banda B'}`}
+                            title="Editar"
+                          >
+                            <Edit size={14} />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteBandaBLocal(b.id)}
+                            className="bg-white border border-red-200 text-red-600 rounded-full w-7 h-7 flex items-center justify-center shadow"
+                            aria-label={`Excluir ${b.nome || 'Banda B'}`}
+                            title="Excluir"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                      )}
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <h4 className="font-bold text-gray-900">{b.nome || 'Nome não informado'}</h4>
+            {b.partido && (
+              <span
+                className={`text-xs px-2 py-0.5 rounded ${partidoClass(b.partido)}`}
+                style={partidoStyle(b.partido)}
+              >
+                {b.partido}
+              </span>
+            )}
+                            {b.historico && (
+                              <span className="text-xs px-2 py-0.5 rounded bg-yellow-200 text-yellow-800">{historicoLabel(b.historico)}</span>
+                            )}
+                          </div>
+                          {typeof b.votos_recebidos === 'number' && (
+                            <p className="text-sm text-gray-700">Votos: {b.votos_recebidos}</p>
+                          )}
+                          {b.observacoes && (
+                            <p className="text-xs text-gray-500 italic mt-1">{b.observacoes}</p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center text-gray-500">
+                  <p className="text-sm italic">Clique no botão + para adicionar itens da Banda B</p>
+                </div>
+              )}
             </div>
-          ) : (
-            <div className="text-center py-8 bg-gray-100 rounded-lg">
-              <Radio size={48} className="text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-600 mb-2">Nenhuma mídia local cadastrada</p>
-              <p className="text-sm text-gray-500 italic">Clique no botão + para adicionar rádios e blogs</p>
+          </details>
+        </div>
+
+        {/* Lideranças Locais */}
+        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+          <details className="group">
+            <summary className="cursor-pointer flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-psd-blue mb-0 text-center">Lideranças Locais</h2>
+              {userNivel !== 1 && (
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleOpenAddLideranca}
+                    className="bg-blue-600 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-blue-700"
+                    title="Adicionar liderança"
+                  >
+                    <Plus size={16} />
+                  </button>
+                </div>
+              )}
+            </summary>
+            <div className="mt-2">
+              {liderancas && liderancas.length > 0 ? (
+                <div className="space-y-3 max-h-64 overflow-y-auto">
+                  {liderancas.map((l) => (
+                    <div key={l.id} className="border rounded-lg p-3 bg-blue-50 relative">
+                      {userNivel !== 1 && (
+                        <div className="absolute right-3 top-3 flex gap-2">
+                          <button
+                            onClick={() => handleOpenEditLideranca(l)}
+                            className="bg-white border border-blue-200 text-psd-blue rounded-full w-7 h-7 flex items-center justify-center shadow"
+                            aria-label={`Editar ${l.nome || 'liderança'}`}
+                            title="Editar"
+                          >
+                            <Edit size={14} />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteLideranca(l.id)}
+                            className="bg-white border border-red-200 text-red-600 rounded-full w-7 h-7 flex items-center justify-center shadow"
+                            aria-label={`Excluir ${l.nome || 'liderança'}`}
+                            title="Excluir"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                      )}
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <h4 className="font-bold text-gray-900">{l.nome || 'Nome não informado'}</h4>
+            {l.partido && (
+              <span
+                className={`text-xs px-2 py-0.5 rounded ${partidoClass(l.partido)}`}
+                style={partidoStyle(l.partido)}
+              >
+                {l.partido}
+              </span>
+            )}
+                            {l.historico && (
+                              <span className="text-xs px-2 py-0.5 rounded bg-yellow-200 text-yellow-800">{l.historico}</span>
+                            )}
+                          </div>
+                          {typeof l.votos_recebidos === 'number' && (
+                            <p className="text-sm text-gray-700">Votos: {l.votos_recebidos}</p>
+                          )}
+                          {l.observacoes && (
+                            <p className="text-xs text-gray-500 italic mt-1">{l.observacoes}</p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center text-gray-500">
+                  <p className="text-sm italic">Clique no botão + para adicionar lideranças locais</p>
+                </div>
+              )}
             </div>
-          )}
+          </details>
+        </div>
+
+        {/* Deputados Banda B (Federal/Estadual) */}
+        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+          <details className="group">
+            <summary className="cursor-pointer flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-psd-blue mb-0 text-center">Deputados Banda B</h2>
+              {userNivel !== 1 && (
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleOpenAddBandaB}
+                    className="bg-purple-600 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-purple-700"
+                    title="Adicionar deputado Banda B"
+                  >
+                    <Plus size={16} />
+                  </button>
+                </div>
+              )}
+            </summary>
+            <div className="mt-2">
+              {bandaBPoliticos && bandaBPoliticos.length > 0 ? (
+                <div className="space-y-3 max-h-64 overflow-y-auto">
+                  {bandaBPoliticos.map((b) => (
+                    <div key={b.id} className="border rounded-lg p-3 bg-purple-50 relative">
+                      {userNivel !== 1 && (
+                        <div className="absolute right-3 top-3 flex gap-2">
+                          <button
+                            onClick={() => handleOpenEditBandaB(b)}
+                            className="bg-white border border-purple-200 text-purple-800 rounded-full w-7 h-7 flex items-center justify-center shadow"
+                            aria-label={`Editar ${b.nome || 'deputado Banda B'}`}
+                            title="Editar"
+                          >
+                            <Edit size={14} />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteBandaB(b.id)}
+                            className="bg-white border border-red-200 text-red-600 rounded-full w-7 h-7 flex items-center justify-center shadow"
+                            aria-label={`Excluir ${b.nome || 'deputado Banda B'}`}
+                            title="Excluir"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                      )}
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <h4 className="font-bold text-gray-900">{b.nome || 'Nome não informado'}</h4>
+                            <span className="text-xs px-2 py-0.5 rounded bg-purple-200 text-purple-800">
+                              {b.esfera === 'estadual' ? 'Estadual' : 'Federal'}
+                            </span>
+            {b.partido && (
+              <span
+                className={`text-xs px-2 py-0.5 rounded ${partidoClass(b.partido)}`}
+                style={partidoStyle(b.partido)}
+              >
+                {b.partido}
+              </span>
+            )}
+                            {b.historico && (
+                              <span className="text-xs px-2 py-0.5 rounded bg-yellow-200 text-yellow-800">{historicoLabel(b.historico)}</span>
+                            )}
+                          </div>
+                          {typeof b.votos_recebidos === 'number' && (
+                            <p className="text-sm text-gray-700">Votos: {b.votos_recebidos}</p>
+                          )}
+                          {b.observacoes && (
+                            <p className="text-xs text-gray-500 italic mt-1">{b.observacoes}</p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center text-gray-500">
+                  <p className="text-sm italic">Clique no botão + para adicionar deputados Banda B</p>
+                </div>
+              )}
+            </div>
+          </details>
         </div>
 
         {/* Vereadores */}
         <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold text-psd-blue">Vereadores</h2>
-            <div className="flex items-center space-x-2">
-              <span className="text-sm text-gray-600">{vereadores.length} vereador(es) cadastrado(s)</span>
-              <button 
-                onClick={() => alert('Funcionalidade de adicionar vereadores em desenvolvimento.\n\nEm breve você poderá:\n• Adicionar novos vereadores\n• Definir partido e votos\n• Adicionar informações de contato\n• Incluir observações')}
-                className="bg-green-600 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-green-700"
-              >
-                <span className="text-lg font-bold">+</span>
-              </button>
+          <details className="group">
+            <summary className="cursor-pointer flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-psd-blue">Vereadores</h2>
+              <div className="flex items-center space-x-2">
+                <span className="text-sm text-gray-600">{vereadores.length} vereador(es) cadastrado(s)</span>
+                <button 
+                  onClick={() => alert('Funcionalidade de adicionar vereadores em desenvolvimento.\n\nEm breve você poderá:\n• Adicionar novos vereadores\n• Definir partido e votos\n• Adicionar informações de contato\n• Incluir observações')}
+                  className="bg-green-600 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-green-700"
+                >
+                  <span className="text-lg font-bold">+</span>
+                </button>
+              </div>
+            </summary>
+            <div className="mt-2">
+              {/* Presidente da Câmara - mostra o presidente, partido e votos; edit abre modal agrupado */}
+              <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200 relative">
+                <h3 className="text-lg font-semibold text-blue-800 mb-3">Presidente da Câmara</h3>
+
+                <button
+                  onClick={handleEditPresidente}
+                  className="absolute right-4 top-6 bg-white border border-blue-200 text-psd-blue rounded-full w-8 h-8 flex items-center justify-center shadow"
+                  aria-label="Editar Presidente da Câmara"
+                >
+                  <Edit size={14} />
+                </button>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="p-3 bg-white rounded border">
+                    <h4 className="text-xs font-semibold text-gray-600">Nome</h4>
+                    <div className="text-sm font-bold text-gray-900 mt-1">{municipio.presidente_camara || '—'}</div>
+                  </div>
+                  <div className="p-3 bg-white rounded border">
+                    <h4 className="text-xs font-semibold text-gray-600">Partido</h4>
+            <div className="text-sm font-bold text-gray-900 mt-1">
+              {municipio.presidente_camara_partido ? (
+                <span
+                  className={`px-2 py-0.5 rounded ${partidoClass(municipio.presidente_camara_partido)}`}
+                  style={partidoStyle(municipio.presidente_camara_partido)}
+                >
+                  {municipio.presidente_camara_partido}
+                </span>
+              ) : (
+                '—'
+              )}
             </div>
-          </div>
-          
-          {/* Presidente da Câmara */}
-          <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-            <h3 className="text-lg font-semibold text-blue-800 mb-3">Presidente da Câmara</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <InfoCard
-                title="Nome"
-                value={municipio.presidente_camara}
-                icon={<User />}
-                isEditable={true}
-                onEditPress={() => handleEditField('presidente_camara', municipio.presidente_camara || '')}
-            />
-            <InfoCard
-              title="Partido do Presidente da Câmara"
-              value={municipio.presidente_camara_partido}
-              icon={<Building />}
-              isEditable={true}
-              onEditPress={() => handleEditField('presidente_camara_partido', municipio.presidente_camara_partido || '')}
-              />
-            </div>
-          </div>
-          {vereadores.length > 0 ? (
-            <div className="space-y-3 max-h-96 overflow-y-auto">
-              {vereadores.map((vereador) => (
-                <div key={vereador.id} className="border rounded-lg p-4 bg-yellow-50">
-                  <h4 className="font-bold text-gray-900 mb-2">{vereador.nome || 'Nome não informado'}</h4>
-                  <div className="space-y-2">
-                    {renderEditDeputadoField(vereador, 'nome', 'Nome', 'vereador')}
-                    {renderEditDeputadoField(vereador, 'partido', 'Partido', 'vereador')}
-                    {renderEditDeputadoField(vereador, 'votos_recebidos', 'Votos Recebidos', 'vereador')}
-                    {renderEditDeputadoField(vereador, 'deputado_apoiado', 'Deputado Apoiado', 'vereador')}
-                    {renderEditDeputadoField(vereador, 'telefone', 'Telefone', 'vereador')}
-                    {renderEditDeputadoField(vereador, 'observacoes', 'Observações', 'vereador')}
+                  </div>
+                  <div className="p-3 bg-white rounded border">
+                    <h4 className="text-xs font-semibold text-gray-600">Votos (vereador)</h4>
+                    <div className="text-sm font-bold text-gray-900 mt-1">{municipio.presidente_camara_votos_vereador || '—'}</div>
                   </div>
                 </div>
-              ))}
+              </div>
+              {vereadores.length > 0 ? (
+                <div className="space-y-3 max-h-96 overflow-y-auto">
+                  {vereadores.map((vereador) => (
+                    <div key={vereador.id} className="border rounded-lg p-4 bg-yellow-50 relative">
+                      {/* edit button on the right (matches mobile app style) */}
+                      <button
+                        onClick={() => handleOpenVereadorModal(vereador)}
+                        className="absolute right-4 top-4 bg-white border border-blue-200 text-psd-blue rounded-full w-8 h-8 flex items-center justify-center shadow"
+                        aria-label={`Editar ${vereador.nome || 'vereador'}`}
+                      >
+                        <Edit size={14} />
+                      </button>
+
+                      <h4 className="font-bold text-gray-900 mb-2 text-lg">{vereador.nome || 'Nome não informado'}</h4>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-gray-700">
+            <p>
+              <span className="font-semibold">Partido: </span>
+              {vereador.partido ? (
+                <span
+                  className={`text-xs px-2 py-0.5 rounded ${partidoClass(vereador.partido)}`}
+                  style={partidoStyle(vereador.partido)}
+                >
+                  {vereador.partido}
+                </span>
+              ) : (
+                '—'
+              )}
+            </p>
+                        <p><span className="font-semibold">Votos: </span>{vereador.votos_recebidos || '—'}</p>
+                        <p><span className="font-semibold">Deputado Apoiado: </span>{vereador.deputado_apoiado || '—'}</p>
+                        <p><span className="font-semibold">Telefone: </span>{vereador.telefone || '—'}</p>
+                        <p className="md:col-span-2"><span className="font-semibold">Observações: </span>{vereador.observacoes || '—'}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-8 bg-gray-100 rounded-lg">
+                  <Users size={48} className="text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-600 mb-2">Nenhum vereador cadastrado</p>
+                  <p className="text-sm text-gray-500 italic">Clique no botão + para adicionar vereadores</p>
+                </div>
+              )}
             </div>
-          ) : (
-            <div className="text-center py-8 bg-gray-100 rounded-lg">
-              <Users size={48} className="text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-600 mb-2">Nenhum vereador cadastrado</p>
-              <p className="text-sm text-gray-500 italic">Clique no botão + para adicionar vereadores</p>
-            </div>
-          )}
+          </details>
         </div>
       </div>
 
-      {/* Modal de Edição */}
-      {editingField && (
+      {/* Modal para edição agrupada do Presidente da Câmara */}
+      {editingField === 'presidente_camara_group' && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-6 w-full max-w-sm">
+            <h3 className="text-lg font-bold text-psd-blue mb-4">Editar Presidente da Câmara</h3>
+
+            <label className="text-xs text-gray-600">Nome</label>
+            <input
+              type="text"
+              value={presidenteForm.nome}
+              onChange={(e) => setPresidenteForm(prev => ({ ...prev, nome: e.target.value }))}
+              className="w-full p-2 border border-gray-300 rounded mb-3"
+            />
+
+            <label className="text-xs text-gray-600">Partido</label>
+            <input
+              type="text"
+              value={presidenteForm.partido}
+              onChange={(e) => setPresidenteForm(prev => ({ ...prev, partido: e.target.value }))}
+              className="w-full p-2 border border-gray-300 rounded mb-3"
+            />
+
+            <label className="text-xs text-gray-600">Votos (vereador)</label>
+            <input
+              type="text"
+              value={presidenteForm.votos}
+              onChange={(e) => setPresidenteForm(prev => ({ ...prev, votos: e.target.value }))}
+              className="w-full p-2 border border-gray-300 rounded mb-4"
+              placeholder="Ex: 1234"
+            />
+
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() => setEditingField(null)}
+                disabled={isSaving}
+                className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleSavePresidente}
+                disabled={isSaving}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isSaving ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2 inline-block"></div>
+                    Salvando...
+                  </>
+                ) : (
+                  'Salvar'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal para edição agrupada da Família do Prefeito */}
+      {editingField === 'familia_prefeito_group' && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-6 w-full max-w-sm">
+            <h3 className="text-lg font-bold text-psd-blue mb-4">Editar Família do Prefeito</h3>
+
+            <label className="text-xs text-gray-600">Primeira-dama(o)</label>
+            <input
+              type="text"
+              value={familiaForm.primeira_dama}
+              onChange={(e) => setFamiliaForm(prev => ({ ...prev, primeira_dama: e.target.value }))}
+              className="w-full p-2 border border-gray-300 rounded mb-3"
+              placeholder="Ex: Nome da primeira-dama(o)"
+            />
+
+            <label className="text-xs text-gray-600">Filhos do Prefeito</label>
+            <input
+              type="text"
+              value={familiaForm.filhos_prefeito}
+              onChange={(e) => setFamiliaForm(prev => ({ ...prev, filhos_prefeito: e.target.value }))}
+              className="w-full p-2 border border-gray-300 rounded mb-4"
+              placeholder="Ex: Filho1, Filho2"
+            />
+
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() => setEditingField(null)}
+                disabled={isSaving}
+                className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleSaveFamilia}
+                disabled={isSaving}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isSaving ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2 inline-block"></div>
+                    Salvando...
+                  </>
+                ) : (
+                  'Salvar'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Modal para adicionar/editar Banda B (Locais) */}
+      {showAddBandaBLocalModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-6 w-full max-w-sm">
+            <h3 className="text-lg font-bold text-psd-blue mb-4">{editingBandaBLocal ? 'Editar Banda B' : 'Adicionar Banda B'}</h3>
+
+            <label className="text-xs text-gray-600">Nome</label>
+            <input
+              type="text"
+              value={bandaBLocalForm.nome || ''}
+              onChange={(e) => setBandaBLocalForm(prev => ({ ...prev, nome: e.target.value }))}
+              className="w-full p-2 border border-gray-300 rounded mb-3"
+              placeholder="Nome completo"
+            />
+
+            <label className="text-xs text-gray-600">Partido</label>
+            <input
+              type="text"
+              value={bandaBLocalForm.partido || ''}
+              onChange={(e) => setBandaBLocalForm(prev => ({ ...prev, partido: e.target.value }))}
+              className="w-full p-2 border border-gray-300 rounded mb-3"
+              placeholder="Sigla do partido"
+            />
+
+            <label className="text-xs text-gray-600">Votos (opcional)</label>
+            <input
+              type="number"
+              value={bandaBLocalForm.votos_recebidos ?? ''}
+              onChange={(e) => setBandaBLocalForm(prev => ({ ...prev, votos_recebidos: e.target.value ? Number(e.target.value) : undefined }))}
+              className="w-full p-2 border border-gray-300 rounded mb-3"
+              placeholder="Ex: 1234"
+            />
+
+            <label className="text-xs text-gray-600">Histórico</label>
+            <select
+              className="w-full border rounded p-2 mb-3"
+              value={bandaBLocalForm.historico || ''}
+              onChange={(e) => setBandaBLocalForm(prev => ({ ...prev, historico: e.target.value as any }))}
+            >
+              <option value="">Selecione...</option>
+              <option value="prefeito">Ex-prefeito(a)</option>
+              <option value="candidato_perdeu">Não eleito(a)</option>
+              <option value="vereador">Vereador(a)</option>
+              <option value="vice">Vice-prefeito(a)</option>
+              <option value="vice_atual">Vice-prefeito(a) atual</option>
+            </select>
+
+            <label className="text-xs text-gray-600">Observações (opcional)</label>
+            <textarea
+              value={bandaBLocalForm.observacoes || ''}
+              onChange={(e) => setBandaBLocalForm(prev => ({ ...prev, observacoes: e.target.value }))}
+              className="w-full p-2 border border-gray-300 rounded mb-4"
+            />
+
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() => { setShowAddBandaBLocalModal(false); setEditingBandaBLocal(null); }}
+                disabled={isSaving}
+                className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleSaveBandaBLocal}
+                disabled={isSaving}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isSaving ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2 inline-block"></div>
+                    Salvando...
+                  </>
+                ) : (
+                  'Salvar'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Modal para adicionar/editar Liderança */}
+      {showAddLiderancaModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-6 w-full max-w-sm">
+            <h3 className="text-lg font-bold text-psd-blue mb-4">{editingLideranca ? 'Editar Liderança' : 'Adicionar Liderança'}</h3>
+
+            <label className="text-xs text-gray-600">Nome</label>
+            <input
+              type="text"
+              value={liderancaForm.nome || ''}
+              onChange={(e) => setLiderancaForm(prev => ({ ...prev, nome: e.target.value }))}
+              className="w-full p-2 border border-gray-300 rounded mb-3"
+              placeholder="Nome completo"
+            />
+
+            <label className="text-xs text-gray-600">Partido</label>
+            <input
+              type="text"
+              value={liderancaForm.partido || ''}
+              onChange={(e) => setLiderancaForm(prev => ({ ...prev, partido: e.target.value }))}
+              className="w-full p-2 border border-gray-300 rounded mb-3"
+              placeholder="Sigla do partido"
+            />
+
+            <label className="text-xs text-gray-600">Votos (opcional)</label>
+            <input
+              type="number"
+              value={liderancaForm.votos_recebidos ?? ''}
+              onChange={(e) => setLiderancaForm(prev => ({ ...prev, votos_recebidos: e.target.value ? Number(e.target.value) : undefined }))}
+              className="w-full p-2 border border-gray-300 rounded mb-3"
+              placeholder="Ex: 1234"
+            />
+
+            <label className="text-xs text-gray-600">Histórico</label>
+            <select
+              className="w-full border rounded p-2 mb-3"
+              value={liderancaForm.historico || ''}
+              onChange={(e) => setLiderancaForm(prev => ({ ...prev, historico: e.target.value as any }))}
+            >
+              <option value="">Selecione...</option>
+              <option value="prefeito">Ex-prefeito(a)</option>
+              <option value="candidato_perdeu">Não eleito(a)</option>
+              <option value="vereador">Vereador(a)</option>
+              <option value="vice">Vice-prefeito(a)</option>
+              <option value="vice_atual">Vice-prefeito(a) atual</option>
+            </select>
+
+            <label className="text-xs text-gray-600">Observações (opcional)</label>
+            <textarea
+              value={liderancaForm.observacoes || ''}
+              onChange={(e) => setLiderancaForm(prev => ({ ...prev, observacoes: e.target.value }))}
+              className="w-full p-2 border border-gray-300 rounded mb-4"
+            />
+
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() => { setShowAddLiderancaModal(false); setEditingLideranca(null); }}
+                disabled={isSaving}
+                className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleSaveLideranca}
+                disabled={isSaving}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isSaving ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2 inline-block"></div>
+                    Salvando...
+                  </>
+                ) : (
+                  'Salvar'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal para adicionar/editar Deputado Banda B */}
+      {showAddBandaBModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-6 w-full max-w-sm">
+            <h3 className="text-lg font-bold text-psd-blue mb-4">{editingBandaB ? 'Editar Deputado Banda B' : 'Adicionar Deputado Banda B'}</h3>
+
+            <label className="text-xs text-gray-600">Nome</label>
+            <input
+              type="text"
+              value={bandaBForm.nome || ''}
+              onChange={(e) => setBandaBForm(prev => ({ ...prev, nome: e.target.value }))}
+              className="w-full p-2 border border-gray-300 rounded mb-3"
+              placeholder="Nome completo"
+            />
+
+            <label className="text-xs text-gray-600">Esfera</label>
+            <select
+              className="w-full border rounded p-2 mb-3"
+              value={bandaBForm.esfera || 'federal'}
+              onChange={(e) => setBandaBForm(prev => ({ ...prev, esfera: e.target.value as any }))}
+            >
+              <option value="federal">Federal</option>
+              <option value="estadual">Estadual</option>
+            </select>
+
+            <label className="text-xs text-gray-600">Partido</label>
+            <input
+              type="text"
+              value={bandaBForm.partido || ''}
+              onChange={(e) => setBandaBForm(prev => ({ ...prev, partido: e.target.value }))}
+              className="w-full p-2 border border-gray-300 rounded mb-3"
+              placeholder="Sigla do partido"
+            />
+
+            <label className="text-xs text-gray-600">Votos (opcional)</label>
+            <input
+              type="number"
+              value={bandaBForm.votos_recebidos ?? ''}
+              onChange={(e) => setBandaBForm(prev => ({ ...prev, votos_recebidos: e.target.value ? Number(e.target.value) : undefined }))}
+              className="w-full p-2 border border-gray-300 rounded mb-3"
+              placeholder="Ex: 1234"
+            />
+
+            <label className="text-xs text-gray-600">Histórico</label>
+            <select
+              className="w-full border rounded p-2 mb-3"
+              value={bandaBForm.historico || ''}
+              onChange={(e) => setBandaBForm(prev => ({ ...prev, historico: e.target.value as any }))}
+            >
+              <option value="">Selecione...</option>
+              <option value="prefeito">Ex-prefeito(a)</option>
+              <option value="candidato_perdeu">Não eleito(a)</option>
+              <option value="vereador">Vereador(a)</option>
+              <option value="vice">Vice-prefeito(a)</option>
+              <option value="vice_atual">Vice-prefeito(a) atual</option>
+            </select>
+
+            <label className="text-xs text-gray-600">Observações (opcional)</label>
+            <textarea
+              value={bandaBForm.observacoes || ''}
+              onChange={(e) => setBandaBForm(prev => ({ ...prev, observacoes: e.target.value }))}
+              className="w-full p-2 border border-gray-300 rounded mb-4"
+            />
+
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() => { setShowAddBandaBModal(false); setEditingBandaB(null); }}
+                disabled={isSaving}
+                className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleSaveBandaB}
+                disabled={isSaving}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isSaving ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2 inline-block"></div>
+                    Salvando...
+                  </>
+                ) : (
+                  'Salvar'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal para edição agrupada de Vereador */}
+      {/* Modal para adicionar Mídia Local */}
+      {showAddMidiaModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-6 w-full max-w-sm">
+            <h3 className="text-lg font-bold text-psd-blue mb-4">Adicionar Mídia Local</h3>
+
+            <label className="text-xs text-gray-600">Nome</label>
+            <input
+              type="text"
+              value={midiaForm.nome}
+              onChange={(e) => setMidiaForm(prev => ({ ...prev, nome: e.target.value }))}
+              className="w-full p-2 border border-gray-300 rounded mb-3"
+            />
+
+            <label className="text-xs text-gray-600">Tipo (ex: Rádio, Blog)</label>
+            <input
+              type="text"
+              value={midiaForm.tipo}
+              onChange={(e) => setMidiaForm(prev => ({ ...prev, tipo: e.target.value }))}
+              className="w-full p-2 border border-gray-300 rounded mb-3"
+            />
+
+            <label className="text-xs text-gray-600">Link / Contato</label>
+            <input
+              type="text"
+              value={midiaForm.contato}
+              onChange={(e) => setMidiaForm(prev => ({ ...prev, contato: e.target.value }))}
+              className="w-full p-2 border border-gray-300 rounded mb-3"
+              placeholder="https://radioweb.com.br"
+            />
+
+            <label className="text-xs text-gray-600">Observações</label>
+            <textarea
+              value={midiaForm.observacoes}
+              onChange={(e) => setMidiaForm(prev => ({ ...prev, observacoes: e.target.value }))}
+              className="w-full p-2 border border-gray-300 rounded mb-4"
+            />
+
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() => setShowAddMidiaModal(false)}
+                disabled={isSaving}
+                className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleSaveMidia}
+                disabled={isSaving}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isSaving ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2 inline-block"></div>
+                    Salvando...
+                  </>
+                ) : (
+                  'Salvar'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal para adicionar membro da Família do Prefeito */}
+      {showAddFamiliaModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-6 w-full max-w-sm">
+            <h3 className="text-lg font-bold text-psd-blue mb-4">{editingFamiliaItemId ? 'Editar Membro da Família' : 'Adicionar Membro da Família'}</h3>
+
+            <label className="text-xs text-gray-600">Tipo</label>
+            <select
+              className="w-full border rounded p-2 mb-3"
+              value={familiaItemForm.tipo}
+              onChange={(e) => setFamiliaItemForm(prev => ({ ...prev, tipo: e.target.value }))}
+            >
+              <option value="">Selecione...</option>
+              <option value="primeira_dama">Primeira dama(o)</option>
+              <option value="filho">Filho(a)</option>
+            </select>
+
+            <label className="text-xs text-gray-600">Nome</label>
+            <input
+              className="w-full border rounded p-2 mb-3"
+              placeholder="Nome completo"
+              value={familiaItemForm.nome}
+              onChange={(e) => setFamiliaItemForm(prev => ({ ...prev, nome: e.target.value }))}
+            />
+
+            <label className="text-xs text-gray-600">Observações (opcional)</label>
+            <textarea
+              className="w-full border rounded p-2 mb-4"
+              placeholder="Ex.: profissão, forma de contato, observações"
+              value={familiaItemForm.observacoes}
+              onChange={(e) => setFamiliaItemForm(prev => ({ ...prev, observacoes: e.target.value }))}
+            />
+
+            <div className="flex justify-end gap-2">
+              <button
+                className="px-4 py-2 rounded bg-gray-200 text-gray-800"
+                onClick={() => setShowAddFamiliaModal(false)}
+              >
+                Cancelar
+              </button>
+              <button
+                className="px-4 py-2 rounded text-white"
+                style={{ backgroundColor: '#2ecc71' }}
+                onClick={handleSaveFamiliaItem}
+                disabled={isSaving}
+              >
+                {isSaving ? (
+                  <>
+                    <span className="animate-spin inline-block rounded-full h-4 w-4 border-b-2 border-white mr-2"></span>
+                    Salvando...
+                  </>
+                ) : (
+                  'Salvar'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal para adicionar/editar Emenda/Programa */}
+      {showAddProgramaModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-6 w-full max-w-sm">
+            <h3 className="text-lg font-bold text-psd-blue mb-4">{editingPrograma ? 'Editar Emenda/Programa' : 'Adicionar Emenda/Programa'}</h3>
+
+            <label className="text-xs text-gray-600">Esfera</label>
+            <select
+              className="w-full border rounded p-2 mb-3"
+              value={programaForm.esfera}
+              onChange={(e) => {
+                const esfera = e.target.value as 'estadual' | 'federal';
+                // reset órgão ao trocar esfera
+                setProgramaForm(prev => ({ ...prev, esfera, orgao_sigla: '', orgao_nome: '', area: '' }));
+              }}
+            >
+              <option value="estadual">Estadual</option>
+              <option value="federal">Federal</option>
+            </select>
+
+            <label className="text-xs text-gray-600">Tipo de Parlamentar</label>
+            <select
+              className="w-full border rounded p-2 mb-3"
+              value={programaForm.parlamentar_tipo}
+              onChange={(e) => setProgramaForm(prev => ({ ...prev, parlamentar_tipo: e.target.value as any }))}
+            >
+              <option value="deputado_estadual">Deputado Estadual</option>
+              <option value="deputado_federal">Deputado Federal</option>
+              <option value="senador">Senador</option>
+            </select>
+
+            <label className="text-xs text-gray-600">Nome do Parlamentar</label>
+            <input
+              className="w-full border rounded p-2 mb-3"
+              placeholder="Nome completo"
+              value={programaForm.parlamentar_nome}
+              onChange={(e) => setProgramaForm(prev => ({ ...prev, parlamentar_nome: e.target.value }))}
+            />
+
+            <label className="text-xs text-gray-600">Órgão</label>
+            <select
+              className="w-full border rounded p-2 mb-2"
+              value={programaForm.orgao_sigla}
+              onChange={(e) => {
+                const sigla = e.target.value;
+                if (!sigla) {
+                  setProgramaForm(prev => ({ ...prev, orgao_sigla: '', orgao_nome: '', area: '' }));
+                  return;
+                }
+                const lista = programaForm.esfera === 'estadual' ? SECRETARIAS_ESTADUAIS : MINISTERIOS_FEDERAIS;
+                const orgao = lista.find(o => o.sigla === sigla);
+                setProgramaForm(prev => ({ ...prev, orgao_sigla: sigla, orgao_nome: orgao?.nome || '', area: orgao?.area || '' }));
+              }}
+            >
+              <option value="">Selecione...</option>
+              {(programaForm.esfera === 'estadual' ? SECRETARIAS_ESTADUAIS : MINISTERIOS_FEDERAIS).map((o) => (
+                <option key={o.sigla} value={o.sigla}>{o.sigla} — {o.nome}</option>
+              ))}
+            </select>
+            {programaForm.area && (
+              <p className="text-xs text-gray-500 mb-2">Área: {programaForm.area}</p>
+            )}
+
+            <label className="text-xs text-gray-600">Observações (opcional)</label>
+            <textarea
+              className="w-full border rounded p-2 mb-4"
+              placeholder="Ex.: descrição da emenda, status, detalhes"
+              value={programaForm.observacoes}
+              onChange={(e) => setProgramaForm(prev => ({ ...prev, observacoes: e.target.value }))}
+            />
+
+            <div className="flex justify-end gap-2">
+              <button
+                className="px-4 py-2 rounded bg-gray-200 text-gray-800"
+                onClick={() => { setShowAddProgramaModal(false); setEditingPrograma(null); }}
+              >
+                Cancelar
+              </button>
+              <button
+                className="px-4 py-2 rounded bg-green-600 text-white hover:bg-green-700 disabled:opacity-50"
+                onClick={editingPrograma ? handleUpdatePrograma : handleSavePrograma}
+                disabled={isSaving}
+              >
+                {isSaving ? (editingPrograma ? 'Atualizando...' : 'Salvando...') : (editingPrograma ? 'Atualizar' : 'Salvar')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de confirmação para excluir Emenda/Programa */}
+      {showDeleteProgramaModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-6 w-full max-w-sm">
+            <h3 className="text-lg font-bold text-red-600 mb-4">Excluir Emenda/Programa</h3>
+            <p className="text-sm text-gray-700 mb-4">
+              Tem certeza que deseja excluir
+              {` `}
+              <span className="font-semibold">{programaToDelete?.parlamentar_nome || 'este item'}</span>?
+              {` `}
+              Esta ação não pode ser desfeita.
+            </p>
+            <div className="flex justify-end gap-2">
+              <button
+                className="px-4 py-2 rounded bg-gray-200 text-gray-800"
+                onClick={() => { setShowDeleteProgramaModal(false); setProgramaToDelete(null); }}
+                disabled={isSaving}
+              >
+                Cancelar
+              </button>
+              <button
+                className="px-4 py-2 rounded bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
+                onClick={handleDeletePrograma}
+                disabled={isSaving}
+              >
+                {isSaving ? 'Excluindo...' : 'Excluir'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {editingVereador && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-6 w-full max-w-sm">
+            <h3 className="text-lg font-bold text-psd-blue mb-4">Editar Vereador</h3>
+
+            <label className="text-xs text-gray-600">Nome</label>
+            <input
+              type="text"
+              value={vereadorForm.nome}
+              onChange={(e) => setVereadorForm(prev => ({ ...prev, nome: e.target.value }))}
+              className="w-full p-2 border border-gray-300 rounded mb-3"
+            />
+
+            <label className="text-xs text-gray-600">Partido</label>
+            <input
+              type="text"
+              value={vereadorForm.partido}
+              onChange={(e) => setVereadorForm(prev => ({ ...prev, partido: e.target.value }))}
+              className="w-full p-2 border border-gray-300 rounded mb-3"
+            />
+
+            <label className="text-xs text-gray-600">Votos</label>
+            <input
+              type="text"
+              value={vereadorForm.votos_recebidos}
+              onChange={(e) => setVereadorForm(prev => ({ ...prev, votos_recebidos: e.target.value }))}
+              className="w-full p-2 border border-gray-300 rounded mb-3"
+            />
+
+            <label className="text-xs text-gray-600">Deputado Apoiado</label>
+            <input
+              type="text"
+              value={vereadorForm.deputado_apoiado}
+              onChange={(e) => setVereadorForm(prev => ({ ...prev, deputado_apoiado: e.target.value }))}
+              className="w-full p-2 border border-gray-300 rounded mb-3"
+            />
+
+            <label className="text-xs text-gray-600">Telefone</label>
+            <input
+              type="text"
+              value={vereadorForm.telefone}
+              onChange={(e) => setVereadorForm(prev => ({ ...prev, telefone: e.target.value }))}
+              className="w-full p-2 border border-gray-300 rounded mb-3"
+            />
+
+            <label className="text-xs text-gray-600">Observações</label>
+            <textarea
+              value={vereadorForm.observacoes}
+              onChange={(e) => setVereadorForm(prev => ({ ...prev, observacoes: e.target.value }))}
+              className="w-full p-2 border border-gray-300 rounded mb-4"
+            />
+
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() => setEditingVereador(null)}
+                disabled={isSaving}
+                className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleSaveVereador}
+                disabled={isSaving}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isSaving ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2 inline-block"></div>
+                    Salvando...
+                  </>
+                ) : (
+                  'Salvar'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Edição (individual) */}
+      {editingField && editingField !== 'presidente_camara_group' && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg p-6 w-full max-w-md">
             <h3 className="text-lg font-bold text-psd-blue mb-4">
               Editar {editingField === 'populacao' ? 'População' : 
                      editingField === 'eleitores' ? 'Eleitores' :
                      editingField === 'data_emancipacao' ? 'Data de Emancipação' :
-                     editingField === 'data_aniversario' ? 'Data de Aniversário' :
+                     (editingField === 'data_aniversario' || editingField === 'aniversario') ? 'Data de Aniversário' :
                      editingField === 'nome_prefeito' ? 'Nome do Prefeito' :
                      'Campo'}
             </h3>
@@ -1244,7 +3607,7 @@ export default function MunicipioDetalhes() {
                 onChange={(e) => setEditValue(e.target.value)}
                 className="w-full p-3 border border-gray-300 rounded-lg mb-4 min-h-[100px]"
                 placeholder={editingField === 'data_emancipacao' ? 'Ex: 1962-07-11' :
-                           editingField === 'data_aniversario' ? 'Ex: 11 de julho' :
+                           (editingField === 'data_aniversario' || editingField === 'aniversario') ? 'Ex: 11 de julho' :
                            editingField === 'nome_prefeito' ? 'Ex: João Silva' :
                            'Digite o novo valor...'}
               />

@@ -32,19 +32,47 @@ export const generateMunicipioDocument = async (data: MunicipioData) => {
   try {
     console.log('Dados recebidos para gerar documento:', data);
     
+    // Helpers para parse/normalização
+    const parseIntSafe = (val: any): number => {
+      if (typeof val === 'number') return Math.round(val);
+      if (typeof val === 'string') {
+        const onlyDigits = val.replace(/[^\d]/g, '');
+        return Number(onlyDigits || '0');
+      }
+      return 0;
+    };
+
+    const normalizePercent = (val: any): number => {
+      let num: number | null = null;
+      if (typeof val === 'number') {
+        num = val;
+      } else if (typeof val === 'string') {
+        const cleaned = val.replace('%', '').replace(',', '.').trim();
+        const parsed = parseFloat(cleaned);
+        if (Number.isFinite(parsed)) num = parsed;
+      }
+      if (num === null) return 0;
+      // Se veio entre 0 e 1, tratar como fração e converter para %
+      if (num > 0 && num <= 1) return num * 100;
+      return num;
+    };
+
     // Encontrar o segundo colocado
     const segundoColocado = data.candidatos?.find(c => c.posicao === 2);
+    // Encontrar o terceiro colocado
+    const terceiroColocado = data.candidatos?.find(c => c.posicao === 3);
     
     // Formatação dos votos com verificação de segurança
     let votosFormatados = 'Não informado';
-    if (data.votos_recebidos) {
+    if (data.votos_recebidos != null) {
       try {
-        const votos = parseInt(data.votos_recebidos.toString());
-        const porcentagem = data.porcentagem_votacao || 0;
-        votosFormatados = `${votos.toLocaleString('pt-BR')} votos (${porcentagem}%)`;
+        const votos = parseIntSafe(data.votos_recebidos);
+        const porcentagem = normalizePercent(data.porcentagem_votacao || 0);
+        votosFormatados = `${votos.toLocaleString('pt-BR')} votos (${porcentagem.toFixed(2)}%)`;
       } catch (e) {
         console.error('Erro ao formatar votos:', e);
-        votosFormatados = data.votos_recebidos.toString();
+        const fallback = typeof data.votos_recebidos === 'string' ? data.votos_recebidos : String(data.votos_recebidos);
+        votosFormatados = fallback;
       }
     }
     
@@ -52,10 +80,29 @@ export const generateMunicipioDocument = async (data: MunicipioData) => {
     let segundoColocadoTexto = 'Não informado';
     if (segundoColocado) {
       try {
-        segundoColocadoTexto = `2º lugar – ${segundoColocado.nome} (${segundoColocado.partido}) ${segundoColocado.votos.toLocaleString('pt-BR')} votos (${segundoColocado.porcentagem}%)`;
+        const pct2 = normalizePercent(segundoColocado.porcentagem);
+        const votos2 = typeof segundoColocado.votos === 'number'
+          ? segundoColocado.votos
+          : parseIntSafe(segundoColocado.votos as any);
+        segundoColocadoTexto = `2º lugar – ${segundoColocado.nome} (${segundoColocado.partido}) ${votos2.toLocaleString('pt-BR')} votos (${pct2.toFixed(2)}%)`;
       } catch (e) {
         console.error('Erro ao formatar segundo colocado:', e);
         segundoColocadoTexto = `2º lugar – ${segundoColocado.nome}`;
+      }
+    }
+
+    // Formatação do terceiro colocado com verificação de segurança
+    let terceiroColocadoTexto = 'Não informado';
+    if (terceiroColocado) {
+      try {
+        const pct3 = normalizePercent(terceiroColocado.porcentagem);
+        const votos3 = typeof terceiroColocado.votos === 'number'
+          ? terceiroColocado.votos
+          : parseIntSafe(terceiroColocado.votos as any);
+        terceiroColocadoTexto = `3º lugar – ${terceiroColocado.nome} (${terceiroColocado.partido}) ${votos3.toLocaleString('pt-BR')} votos (${pct3.toFixed(2)}%)`;
+      } catch (e) {
+        console.error('Erro ao formatar terceiro colocado:', e);
+        terceiroColocadoTexto = `3º lugar – ${terceiroColocado.nome}`;
       }
     }
 
@@ -149,6 +196,30 @@ export const generateMunicipioDocument = async (data: MunicipioData) => {
       }
     }
 
+    // Tentar carregar a foto do prefeito (se houver)
+    let fotoPrefeitoImageRun: ImageRun | null = null;
+    if (data.foto_prefeito) {
+      try {
+        const resp = await fetch(data.foto_prefeito);
+        if (resp.ok) {
+          const arrayBuffer = await resp.arrayBuffer();
+          const uint8 = new Uint8Array(arrayBuffer);
+          fotoPrefeitoImageRun = new ImageRun({
+            data: uint8,
+            type: 'png',
+            transformation: {
+              width: 180,
+              height: 180,
+            },
+          });
+        } else {
+          console.warn('Não foi possível carregar a foto do prefeito para o documento:', resp.status);
+        }
+      } catch (e) {
+        console.warn('Falha ao buscar a foto do prefeito:', e);
+      }
+    }
+
     const doc = new Document({
       sections: [
         {
@@ -170,6 +241,23 @@ export const generateMunicipioDocument = async (data: MunicipioData) => {
                 after: 400,
               },
             }),
+
+            // Foto do Prefeito (ou espaço em branco quando não disponível)
+            ...(fotoPrefeitoImageRun
+              ? [
+                  new Paragraph({
+                    children: [fotoPrefeitoImageRun],
+                    alignment: AlignmentType.CENTER,
+                    spacing: { after: 200 },
+                  }),
+                ]
+              : [
+                  new Paragraph({
+                    children: [new TextRun({ text: "", size: 20 })],
+                    alignment: AlignmentType.CENTER,
+                    spacing: { after: 200 },
+                  }),
+                ]),
 
             // Nome do prefeito
             new Paragraph({
@@ -229,6 +317,26 @@ export const generateMunicipioDocument = async (data: MunicipioData) => {
               },
             }),
 
+            // Partido (movido para logo abaixo de Cargo)
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: "• Partido: ",
+                  bold: true,
+                  size: 24,
+                }),
+                new TextRun({
+                  text: data.partido || "Não informado",
+                  size: 24,
+                  color: "0065BD", // Azul PSD
+                  bold: true,
+                }),
+              ],
+              spacing: {
+                after: 200,
+              },
+            }),
+
             // Votação
             new Paragraph({
               children: [
@@ -262,25 +370,22 @@ export const generateMunicipioDocument = async (data: MunicipioData) => {
               },
             }),
 
-            // Partido
-            new Paragraph({
-              children: [
-                new TextRun({
-                  text: "• Partido: ",
-                  bold: true,
-                  size: 24,
-                }),
-                new TextRun({
-                  text: data.partido || "Não informado",
-                  size: 24,
-                  color: "0065BD", // Azul PSD
-                  bold: true,
-                }),
-              ],
-              spacing: {
-                after: 200,
-              },
-            }),
+            // Terceiro colocado (indentado) – apenas se existir
+            ...(terceiroColocado
+              ? [
+                  new Paragraph({
+                    children: [
+                      new TextRun({
+                        text: `  ${terceiroColocadoTexto}`,
+                        size: 22,
+                        italics: true,
+                      }),
+                    ],
+                    spacing: { after: 200 },
+                  }),
+                ]
+              : []),
+
 
             // Linhas em branco para dados adicionais
             criarLinhaEmBranco(),
