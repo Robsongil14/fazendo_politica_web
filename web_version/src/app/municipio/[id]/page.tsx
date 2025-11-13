@@ -234,6 +234,15 @@ interface BandaBLocal {
   historico?: 'prefeito' | 'candidato_perdeu' | 'vereador' | 'vice' | 'vice_atual';
   observacoes?: string;
 }
+interface VicePrefeitoItem {
+  id: string;
+  municipio_id: string;
+  nome?: string;
+  partido?: string;
+  telefone?: string;
+  historico?: 'prefeito' | 'candidato_perdeu' | 'vereador' | 'vice' | 'vice_atual' | 'lideranca' | 'outros';
+  observacoes?: string;
+}
 
 interface EstatisticasTransferencias {
   total_transferencias: number;
@@ -376,13 +385,10 @@ export default function MunicipioDetalhes() {
     primeira_dama: '',
     filhos_prefeito: ''
   });
-  // Form state para Vice-Prefeito (agrupado)
-  const [viceForm, setViceForm] = useState<{ nome: string; partido: string; telefone: string; historico: string }>({
-    nome: '',
-    partido: '',
-    telefone: '',
-    historico: ''
-  });
+  const [vicePrefeitos, setVicePrefeitos] = useState<VicePrefeitoItem[]>([]);
+  const [showAddViceModal, setShowAddViceModal] = useState(false);
+  const [editingVice, setEditingVice] = useState<VicePrefeitoItem | null>(null);
+  const [viceForm, setViceForm] = useState<Partial<VicePrefeitoItem>>({});
   // Modal state for editing a vereador (grouped editor)
   const [editingVereador, setEditingVereador] = useState<Vereador | null>(null);
   const [vereadorForm, setVereadorForm] = useState<{
@@ -440,6 +446,30 @@ export default function MunicipioDetalhes() {
   } finally {
     setIsSaving(false);
   }
+  };
+
+  // Vereadores: excluir
+  const handleDeleteVereador = async (id: string) => {
+    if (userNivel === 1) {
+      alert('Usuários de nível 1 não podem excluir.');
+      return;
+    }
+    if (!confirm('Tem certeza que deseja excluir este vereador?')) return;
+    setIsSaving(true);
+    try {
+      const { error } = await supabase
+        .from('vereadores')
+        .delete()
+        .eq('id', id);
+      if (error) throw error;
+      setVereadores(prev => prev.filter(v => v.id !== id));
+      alert('Vereador excluído!');
+    } catch (err) {
+      console.error('Erro ao excluir vereador:', err);
+      alert('Erro ao excluir vereador. Tente novamente.');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   // Lideranças: abrir modal de adição
@@ -739,6 +769,10 @@ export default function MunicipioDetalhes() {
         return 'Vice-prefeito(a)';
       case 'vice_atual':
         return 'Vice-prefeito(a) atual';
+      case 'lideranca':
+        return 'Liderança';
+      case 'outros':
+        return 'Outros';
       default:
         return h || '';
     }
@@ -1361,6 +1395,18 @@ export default function MunicipioDetalhes() {
         setBandaBPoliticos(bandaBData || []);
       }
 
+      // Buscar Vice-Prefeitos
+      const { data: viceData, error: viceError } = await supabase
+        .from('vice_prefeitos')
+        .select('*')
+        .eq('municipio_id', municipioId)
+        .order('created_at', { ascending: false });
+      if (viceError) {
+        console.error('Erro ao buscar vice-prefeitos:', viceError);
+      } else {
+        setVicePrefeitos(viceData || []);
+      }
+
       // Buscar Emendas/Programas
       const { data: programasData, error: programasError } = await supabase
         .from('programas_emendas')
@@ -1603,65 +1649,91 @@ export default function MunicipioDetalhes() {
     }
   };
 
-  const extractViceHistorico = (obs?: string) => {
-    if (!obs) return '';
-    const match = obs.match(/Hist[oó]rico (?:do )?vice(?:-prefeito)?:\s*(.+)/i);
-    return match ? match[1].trim() : '';
+  const handleOpenAddVicePrefeito = () => {
+    if (userNivel === 1) {
+      alert('Usuários de nível 1 não podem adicionar.');
+      return;
+    }
+    setEditingVice(null);
+    setViceForm({});
+    setShowAddViceModal(true);
   };
 
-  const handleEditVice = () => {
+  const handleOpenEditVicePrefeito = (item: VicePrefeitoItem) => {
     if (userNivel === 1) {
       alert('Usuários de nível 1 não podem editar.');
       return;
     }
+    setEditingVice(item);
     setViceForm({
-      nome: municipio?.vice_prefeito || '',
-      partido: municipio?.vice_prefeito_partido || '',
-      telefone: municipio?.vice_prefeito_telefone || '',
-      historico: extractViceHistorico(municipio?.observacoes_municipio) || ''
+      nome: item.nome || undefined,
+      partido: item.partido || undefined,
+      telefone: item.telefone || undefined,
+      historico: item.historico || undefined,
+      observacoes: item.observacoes || undefined,
     });
-    setEditingField('vice_prefeito_group');
+    setShowAddViceModal(true);
   };
 
-  const handleSaveVice = async () => {
+  const handleSaveVicePrefeito = async () => {
     if (!municipio) return;
     setIsSaving(true);
     try {
-      const historicoStr = (viceForm.historico || '').trim();
-      const currentObs = municipio?.observacoes_municipio || '';
-      const pattern = /Hist[oó]rico (?:do )?vice(?:-prefeito)?:\s*.*$/im;
-      let newObs = currentObs;
-      if (historicoStr) {
-        if (pattern.test(currentObs)) {
-          newObs = currentObs.replace(pattern, `Histórico vice-prefeito: ${historicoStr}`);
-        } else {
-          newObs = currentObs ? `${currentObs}\nHistórico vice-prefeito: ${historicoStr}` : `Histórico vice-prefeito: ${historicoStr}`;
-        }
-      } else {
-        // Se não houver histórico, remover linha existente
-        newObs = currentObs.replace(pattern, '').trim();
-      }
-
-      const updates: any = {
-        vice_prefeito: viceForm.nome || null,
-        vice_prefeito_partido: viceForm.partido || null,
-        vice_prefeito_telefone: viceForm.telefone || null,
-        observacoes_municipio: newObs || null
+      const payload: any = {
+        municipio_id: municipio.id,
+        nome: viceForm.nome || null,
+        partido: viceForm.partido || null,
+        telefone: viceForm.telefone || null,
+        historico: viceForm.historico || null,
+        observacoes: viceForm.observacoes || null,
       };
 
-      const { error } = await supabase
-        .from('municipios')
-        .update(updates)
-        .eq('id', municipio.id);
+      if (editingVice) {
+        const { error } = await supabase
+          .from('vice_prefeitos')
+          .update(payload)
+          .eq('id', editingVice.id);
+        if (error) throw error;
+        setVicePrefeitos(prev => prev.map(v => v.id === editingVice.id ? { ...v, ...payload } as VicePrefeitoItem : v));
+      } else {
+        const { data, error } = await supabase
+          .from('vice_prefeitos')
+          .insert(payload)
+          .select()
+          .single();
+        if (error) throw error;
+        setVicePrefeitos(prev => [data as VicePrefeitoItem, ...(prev || [])]);
+      }
 
-      if (error) throw error;
-
-      setMunicipio(prev => prev ? { ...prev, ...updates } as MunicipioDetalhado : prev);
-      setEditingField(null);
-      alert('Vice-Prefeito atualizado com sucesso!');
+      setShowAddViceModal(false);
+      setEditingVice(null);
+      alert('Vice-Prefeito salvo com sucesso!');
     } catch (err) {
-      console.error('Erro ao salvar vice-prefeito:', err);
-      alert('Erro ao atualizar Vice-Prefeito. Tente novamente.');
+      console.error('Erro ao salvar Vice-Prefeito:', err);
+      alert('Erro ao salvar Vice-Prefeito. Tente novamente.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDeleteVicePrefeito = async (id: string) => {
+    if (userNivel === 1) {
+      alert('Usuários de nível 1 não podem excluir.');
+      return;
+    }
+    if (!confirm('Tem certeza que deseja excluir este Vice-Prefeito?')) return;
+    setIsSaving(true);
+    try {
+      const { error } = await supabase
+        .from('vice_prefeitos')
+        .delete()
+        .eq('id', id);
+      if (error) throw error;
+      setVicePrefeitos(prev => prev.filter(v => v.id !== id));
+      alert('Vice-Prefeito excluído!');
+    } catch (err) {
+      console.error('Erro ao excluir Vice-Prefeito:', err);
+      alert('Erro ao excluir. Tente novamente.');
     } finally {
       setIsSaving(false);
     }
@@ -2120,51 +2192,82 @@ export default function MunicipioDetalhes() {
           </div>
         </div>
 
-        {/* Vice-Prefeito */}
+        {/* Vice-Prefeito — seção oculta com lista e botão adicionar */}
         <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold text-psd-blue mb-0 text-center">Vice-Prefeito</h2>
-            {userNivel !== 1 && (
-              <button
-                onClick={handleEditVice}
-                className="bg-blue-100 hover:bg-blue-200 p-2 rounded-full"
-                title="Editar vice-prefeito"
-              >
-                <Edit size={18} className="text-psd-blue" />
-              </button>
-            )}
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <InfoCard
-              title="Nome"
-              value={municipio.vice_prefeito}
-              icon={<User />}
-              isEditable={userNivel !== 1}
-              onEditPress={userNivel !== 1 ? handleEditVice : undefined}
-            />
-            <InfoCard
-              title="Partido"
-              value={municipio.vice_prefeito_partido}
-              icon={<Building />}
-              isEditable={userNivel !== 1}
-              onEditPress={userNivel !== 1 ? handleEditVice : undefined}
-            />
-            <InfoCard
-              title="Telefone"
-              value={municipio.vice_prefeito_telefone}
-              icon={<Phone />}
-              isLink={true}
-              isEditable={userNivel !== 1}
-              onEditPress={userNivel !== 1 ? handleEditVice : undefined}
-            />
-            <InfoCard
-              title="Histórico Político"
-              value={extractViceHistorico(municipio.observacoes_municipio) || 'Não informado'}
-              icon={<FileText />}
-              isEditable={userNivel !== 1}
-              onEditPress={userNivel !== 1 ? handleEditVice : undefined}
-            />
-          </div>
+          <details className="group">
+            <summary className="cursor-pointer flex items-center justify-between mb-4">
+              <h2 className="text-xl font-bold text-psd-blue mb-0 text-center">Vice-Prefeito</h2>
+              {userNivel !== 1 && (
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleOpenAddVicePrefeito}
+                    className="bg-blue-600 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-blue-700"
+                    title="Adicionar Vice-Prefeito"
+                  >
+                    <Plus size={16} />
+                  </button>
+                </div>
+              )}
+            </summary>
+            <div className="mt-2">
+              {vicePrefeitos && vicePrefeitos.length > 0 ? (
+                <div className="space-y-3 max-h-64 overflow-y-auto">
+                  {vicePrefeitos.map((v) => (
+                    <div key={v.id} className="border rounded-lg p-3 bg-blue-50 relative">
+                      {userNivel !== 1 && (
+                        <div className="absolute right-3 top-3 flex gap-2">
+                          <button
+                            onClick={() => handleOpenEditVicePrefeito(v)}
+                            className="bg-white border border-blue-200 text-psd-blue rounded-full w-7 h-7 flex items-center justify-center shadow"
+                            aria-label={`Editar ${v.nome || 'vice-prefeito'}`}
+                            title="Editar"
+                          >
+                            <Edit size={14} />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteVicePrefeito(v.id)}
+                            className="bg-white border border-red-200 text-red-600 rounded-full w-7 h-7 flex items-center justify-center shadow"
+                            aria-label={`Excluir ${v.nome || 'vice-prefeito'}`}
+                            title="Excluir"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                      )}
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <h4 className="font-bold text-gray-900">{v.nome || 'Nome não informado'}</h4>
+                            {v.partido && (
+                              <span
+                                className={`text-xs px-2 py-0.5 rounded ${partidoClass(v.partido)}`}
+                                style={partidoStyle(v.partido)}
+                              >
+                                {v.partido}
+                              </span>
+                            )}
+                            {v.historico && (
+                              <span className="text-xs px-2 py-0.5 rounded bg-yellow-200 text-yellow-800">{historicoLabel(v.historico)}</span>
+                            )}
+                          </div>
+                          {v.telefone && (
+                            <p className="text-sm text-gray-700">Telefone: {v.telefone}</p>
+                          )}
+                          {v.observacoes && (
+                            <p className="text-xs text-gray-500 italic mt-1">{v.observacoes}</p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center text-gray-500">
+                  <p className="text-sm italic">Clique no botão + para adicionar dados do Vice-Prefeito</p>
+                </div>
+              )}
+            </div>
+          </details>
         </div>
 
         {/* Candidatos a Prefeito - Eleições 2024 */}
@@ -2972,15 +3075,26 @@ export default function MunicipioDetalhes() {
                 <div className="space-y-3 max-h-96 overflow-y-auto">
                   {vereadores.map((vereador) => (
                     <div key={vereador.id} className="border rounded-lg p-4 bg-yellow-50 relative">
-                      {/* edit button on the right (matches mobile app style) */}
+                      {/* botões de ação (editar/excluir) */}
                       {userNivel !== 1 && (
-                        <button
-                          onClick={() => handleOpenVereadorModal(vereador)}
-                          className="absolute right-4 top-4 bg-white border border-blue-200 text-psd-blue rounded-full w-8 h-8 flex items-center justify-center shadow"
-                          aria-label={`Editar ${vereador.nome || 'vereador'}`}
-                        >
-                          <Edit size={14} />
-                        </button>
+                        <div className="absolute right-4 top-4 flex gap-2">
+                          <button
+                            onClick={() => handleOpenVereadorModal(vereador)}
+                            className="bg-white border border-blue-200 text-psd-blue rounded-full w-8 h-8 flex items-center justify-center shadow"
+                            aria-label={`Editar ${vereador.nome || 'vereador'}`}
+                            title="Editar"
+                          >
+                            <Edit size={14} />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteVereador(vereador.id)}
+                            className="bg-white border border-red-200 text-red-600 rounded-full w-8 h-8 flex items-center justify-center shadow"
+                            aria-label={`Excluir ${vereador.nome || 'vereador'}`}
+                            title="Excluir"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
                       )}
 
                       <h4 className="font-bold text-gray-900 mb-2 text-lg">{vereador.nome || 'Nome não informado'}</h4>
@@ -3077,60 +3191,72 @@ export default function MunicipioDetalhes() {
         </div>
       )}
 
-      {/* Modal para edição agrupada do Vice-Prefeito */}
-      {editingField === 'vice_prefeito_group' && (
+      {/* Modal para adicionar/editar Vice-Prefeito */}
+      {showAddViceModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg p-6 w-full max-w-sm">
-            <h3 className="text-lg font-bold text-psd-blue mb-4">Editar Vice-Prefeito</h3>
+            <h3 className="text-lg font-bold text-psd-blue mb-4">{editingVice ? 'Editar Vice-Prefeito' : 'Adicionar Vice-Prefeito'}</h3>
 
             <label className="text-xs text-gray-600">Nome</label>
             <input
               type="text"
-              value={viceForm.nome}
+              value={viceForm.nome || ''}
               onChange={(e) => setViceForm(prev => ({ ...prev, nome: e.target.value }))}
               className="w-full p-2 border border-gray-300 rounded mb-3"
+              placeholder="Nome completo"
             />
 
             <label className="text-xs text-gray-600">Partido</label>
             <input
               type="text"
-              value={viceForm.partido}
+              value={viceForm.partido || ''}
               onChange={(e) => setViceForm(prev => ({ ...prev, partido: e.target.value }))}
               className="w-full p-2 border border-gray-300 rounded mb-3"
+              placeholder="Sigla do partido"
             />
 
             <label className="text-xs text-gray-600">Telefone</label>
             <input
               type="text"
-              value={viceForm.telefone}
+              value={viceForm.telefone || ''}
               onChange={(e) => setViceForm(prev => ({ ...prev, telefone: e.target.value }))}
               className="w-full p-2 border border-gray-300 rounded mb-3"
               placeholder="Ex: (71) 99999-9999"
             />
 
-            <label className="text-xs text-gray-600">História Política</label>
+            <label className="text-xs text-gray-600">Histórico</label>
             <select
-              value={viceForm.historico}
-              onChange={(e) => setViceForm(prev => ({ ...prev, historico: e.target.value }))}
-              className="w-full p-2 border border-gray-300 rounded mb-4"
+              className="w-full border rounded p-2 mb-3"
+              value={viceForm.historico || ''}
+              onChange={(e) => setViceForm(prev => ({ ...prev, historico: e.target.value as any }))}
             >
               <option value="">Selecione...</option>
-              <option value="Vereador">Vereador(a)</option>
-              <option value="Ex-prefeito">Ex-prefeito(a)</option>
-              <option value="Liderança">Liderança</option>
-              <option value="Outros">Outros</option>
+              <option value="prefeito">Ex-prefeito(a)</option>
+              <option value="candidato_perdeu">Não eleito(a)</option>
+              <option value="vereador">Vereador(a)</option>
+              <option value="lideranca">Liderança</option>
+              <option value="outros">Outros</option>
+              <option value="vice">Vice-prefeito(a)</option>
+              <option value="vice_atual">Vice-prefeito(a) atual</option>
             </select>
+
+            <label className="text-xs text-gray-600">Observações (opcional)</label>
+            <textarea
+              value={viceForm.observacoes || ''}
+              onChange={(e) => setViceForm(prev => ({ ...prev, observacoes: e.target.value }))}
+              className="w-full p-2 border border-gray-300 rounded mb-4"
+            />
 
             <div className="flex justify-end space-x-3">
               <button
-                onClick={() => setEditingField(null)}
+                onClick={() => { setShowAddViceModal(false); setEditingVice(null); }}
                 disabled={isSaving}
                 className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Cancelar
               </button>
               <button
-                onClick={handleSaveVice}
+                onClick={handleSaveVicePrefeito}
                 disabled={isSaving}
                 className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
