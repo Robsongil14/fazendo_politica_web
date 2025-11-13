@@ -376,6 +376,13 @@ export default function MunicipioDetalhes() {
     primeira_dama: '',
     filhos_prefeito: ''
   });
+  // Form state para Vice-Prefeito (agrupado)
+  const [viceForm, setViceForm] = useState<{ nome: string; partido: string; telefone: string; historico: string }>({
+    nome: '',
+    partido: '',
+    telefone: '',
+    historico: ''
+  });
   // Modal state for editing a vereador (grouped editor)
   const [editingVereador, setEditingVereador] = useState<Vereador | null>(null);
   const [vereadorForm, setVereadorForm] = useState<{
@@ -1596,6 +1603,70 @@ export default function MunicipioDetalhes() {
     }
   };
 
+  const extractViceHistorico = (obs?: string) => {
+    if (!obs) return '';
+    const match = obs.match(/Hist[oó]rico (?:do )?vice(?:-prefeito)?:\s*(.+)/i);
+    return match ? match[1].trim() : '';
+  };
+
+  const handleEditVice = () => {
+    if (userNivel === 1) {
+      alert('Usuários de nível 1 não podem editar.');
+      return;
+    }
+    setViceForm({
+      nome: municipio?.vice_prefeito || '',
+      partido: municipio?.vice_prefeito_partido || '',
+      telefone: municipio?.vice_prefeito_telefone || '',
+      historico: extractViceHistorico(municipio?.observacoes_municipio) || ''
+    });
+    setEditingField('vice_prefeito_group');
+  };
+
+  const handleSaveVice = async () => {
+    if (!municipio) return;
+    setIsSaving(true);
+    try {
+      const historicoStr = (viceForm.historico || '').trim();
+      const currentObs = municipio?.observacoes_municipio || '';
+      const pattern = /Hist[oó]rico (?:do )?vice(?:-prefeito)?:\s*.*$/im;
+      let newObs = currentObs;
+      if (historicoStr) {
+        if (pattern.test(currentObs)) {
+          newObs = currentObs.replace(pattern, `Histórico vice-prefeito: ${historicoStr}`);
+        } else {
+          newObs = currentObs ? `${currentObs}\nHistórico vice-prefeito: ${historicoStr}` : `Histórico vice-prefeito: ${historicoStr}`;
+        }
+      } else {
+        // Se não houver histórico, remover linha existente
+        newObs = currentObs.replace(pattern, '').trim();
+      }
+
+      const updates: any = {
+        vice_prefeito: viceForm.nome || null,
+        vice_prefeito_partido: viceForm.partido || null,
+        vice_prefeito_telefone: viceForm.telefone || null,
+        observacoes_municipio: newObs || null
+      };
+
+      const { error } = await supabase
+        .from('municipios')
+        .update(updates)
+        .eq('id', municipio.id);
+
+      if (error) throw error;
+
+      setMunicipio(prev => prev ? { ...prev, ...updates } as MunicipioDetalhado : prev);
+      setEditingField(null);
+      alert('Vice-Prefeito atualizado com sucesso!');
+    } catch (err) {
+      console.error('Erro ao salvar vice-prefeito:', err);
+      alert('Erro ao atualizar Vice-Prefeito. Tente novamente.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   const handleSaveField = async () => {
     if (!editingField || !municipio) return;
 
@@ -2007,13 +2078,6 @@ export default function MunicipioDetalhes() {
               onEditPress={userNivel !== 1 ? () => handleEditField('prefeito', municipio.prefeito || '') : undefined}
             />
             <InfoCard
-              title="Vice-Prefeito"
-              value={municipio.vice_prefeito}
-              icon={<User />}
-              isEditable={userNivel !== 1}
-              onEditPress={userNivel !== 1 ? () => handleEditField('vice_prefeito', municipio.vice_prefeito || '') : undefined}
-            />
-            <InfoCard
               title="Partido"
               value={municipio.partido}
               icon={<Building />}
@@ -2053,6 +2117,53 @@ export default function MunicipioDetalhes() {
             {/* Card removido conforme solicitação: Liderança será gerenciada na seção inferior */}
             {/* Card removido conforme solicitação: Deputados Banda B será gerenciado na seção inferior */}
             {/* Card removido conforme solicitação: Família do Prefeito será gerenciado na seção inferior */}
+          </div>
+        </div>
+
+        {/* Vice-Prefeito */}
+        <div className="bg-white rounded-lg shadow-sm p-6 mb-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-bold text-psd-blue mb-0 text-center">Vice-Prefeito</h2>
+            {userNivel !== 1 && (
+              <button
+                onClick={handleEditVice}
+                className="bg-blue-100 hover:bg-blue-200 p-2 rounded-full"
+                title="Editar vice-prefeito"
+              >
+                <Edit size={18} className="text-psd-blue" />
+              </button>
+            )}
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <InfoCard
+              title="Nome"
+              value={municipio.vice_prefeito}
+              icon={<User />}
+              isEditable={userNivel !== 1}
+              onEditPress={userNivel !== 1 ? handleEditVice : undefined}
+            />
+            <InfoCard
+              title="Partido"
+              value={municipio.vice_prefeito_partido}
+              icon={<Building />}
+              isEditable={userNivel !== 1}
+              onEditPress={userNivel !== 1 ? handleEditVice : undefined}
+            />
+            <InfoCard
+              title="Telefone"
+              value={municipio.vice_prefeito_telefone}
+              icon={<Phone />}
+              isLink={true}
+              isEditable={userNivel !== 1}
+              onEditPress={userNivel !== 1 ? handleEditVice : undefined}
+            />
+            <InfoCard
+              title="Histórico Político"
+              value={extractViceHistorico(municipio.observacoes_municipio) || 'Não informado'}
+              icon={<FileText />}
+              isEditable={userNivel !== 1}
+              onEditPress={userNivel !== 1 ? handleEditVice : undefined}
+            />
           </div>
         </div>
 
@@ -2949,6 +3060,77 @@ export default function MunicipioDetalhes() {
               </button>
               <button
                 onClick={handleSavePresidente}
+                disabled={isSaving}
+                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isSaving ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2 inline-block"></div>
+                    Salvando...
+                  </>
+                ) : (
+                  'Salvar'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal para edição agrupada do Vice-Prefeito */}
+      {editingField === 'vice_prefeito_group' && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-6 w-full max-w-sm">
+            <h3 className="text-lg font-bold text-psd-blue mb-4">Editar Vice-Prefeito</h3>
+
+            <label className="text-xs text-gray-600">Nome</label>
+            <input
+              type="text"
+              value={viceForm.nome}
+              onChange={(e) => setViceForm(prev => ({ ...prev, nome: e.target.value }))}
+              className="w-full p-2 border border-gray-300 rounded mb-3"
+            />
+
+            <label className="text-xs text-gray-600">Partido</label>
+            <input
+              type="text"
+              value={viceForm.partido}
+              onChange={(e) => setViceForm(prev => ({ ...prev, partido: e.target.value }))}
+              className="w-full p-2 border border-gray-300 rounded mb-3"
+            />
+
+            <label className="text-xs text-gray-600">Telefone</label>
+            <input
+              type="text"
+              value={viceForm.telefone}
+              onChange={(e) => setViceForm(prev => ({ ...prev, telefone: e.target.value }))}
+              className="w-full p-2 border border-gray-300 rounded mb-3"
+              placeholder="Ex: (71) 99999-9999"
+            />
+
+            <label className="text-xs text-gray-600">História Política</label>
+            <select
+              value={viceForm.historico}
+              onChange={(e) => setViceForm(prev => ({ ...prev, historico: e.target.value }))}
+              className="w-full p-2 border border-gray-300 rounded mb-4"
+            >
+              <option value="">Selecione...</option>
+              <option value="Vereador">Vereador(a)</option>
+              <option value="Ex-prefeito">Ex-prefeito(a)</option>
+              <option value="Liderança">Liderança</option>
+              <option value="Outros">Outros</option>
+            </select>
+
+            <div className="flex justify-end space-x-3">
+              <button
+                onClick={() => setEditingField(null)}
+                disabled={isSaving}
+                className="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleSaveVice}
                 disabled={isSaving}
                 className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
