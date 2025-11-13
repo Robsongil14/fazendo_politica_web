@@ -172,14 +172,14 @@ interface DeputadoEstadual {
   observacoes?: string;
 }
 
-interface MidiaLocal {
-  id: string;
-  municipio_id: string;
-  nome?: string;
-  tipo?: string;
-  contato?: string;
-  observacoes?: string;
-}
+  interface MidiaLocal {
+    id: string;
+    municipio_id: string;
+    nome?: string;
+    tipo?: string;
+    url?: string;
+    observacoes?: string;
+  }
 
 // Família do Prefeito: itens individuais (ex.: primeira-dama, filho, filha)
 interface FamiliaMembro {
@@ -897,8 +897,8 @@ export default function MunicipioDetalhes() {
 
   // Mídias locais: add media modal state and handlers
   const [showAddMidiaModal, setShowAddMidiaModal] = useState(false);
-  const [midiaForm, setMidiaForm] = useState<{ nome: string; tipo: string; contato: string; observacoes: string }>({
-    nome: '', tipo: '', contato: '', observacoes: ''
+  const [midiaForm, setMidiaForm] = useState<{ nome: string; tipo: string; url: string; observacoes: string }>({
+    nome: '', tipo: '', url: '', observacoes: ''
   });
 
   // Família do Prefeito: modal de adição e form
@@ -946,20 +946,24 @@ export default function MunicipioDetalhes() {
       alert('Usuários de nível 1 não podem adicionar mídias.');
       return;
     }
-    setMidiaForm({ nome: '', tipo: '', contato: '', observacoes: '' });
+    setMidiaForm({ nome: '', tipo: '', url: '', observacoes: '' });
     setShowAddMidiaModal(true);
   };
 
   const handleSaveMidia = async () => {
     if (!municipio) return;
+    // Validação mínima para evitar erro de schema (campos obrigatórios)
+    if (!midiaForm.nome || !midiaForm.tipo) {
+      alert('Informe o nome e o tipo da mídia.');
+      return;
+    }
     setIsSaving(true);
     try {
       const newMidia = {
         municipio_id: municipio.id,
-        nome: midiaForm.nome || null,
-        tipo: midiaForm.tipo || null,
-        contato: midiaForm.contato || null,
-        observacoes: midiaForm.observacoes || null
+        nome: midiaForm.nome,
+        tipo: midiaForm.tipo,
+        url: midiaForm.url || null
       };
 
       const { data, error } = await supabase
@@ -973,9 +977,36 @@ export default function MunicipioDetalhes() {
       setMidiasLocais(prev => [data, ...(prev || [])]);
       setShowAddMidiaModal(false);
       alert('Mídia local adicionada com sucesso!');
-    } catch (err) {
+    } catch (err: any) {
       console.error('Erro ao adicionar mídia:', err);
-      alert('Erro ao adicionar mídia. Tente novamente.');
+      alert(`Erro ao adicionar mídia: ${err?.message || err}`);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Mídias Locais: excluir
+  const handleDeleteMidiaLocal = async (id: string) => {
+    if (userNivel === 1) {
+      alert('Usuários de nível 1 não podem excluir mídias.');
+      return;
+    }
+    if (!id) return;
+    if (!confirm('Tem certeza que deseja excluir esta mídia local?')) return;
+    setIsSaving(true);
+    try {
+      const { error } = await supabase
+        .from('midias_locais')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setMidiasLocais(prev => (prev || []).filter(m => m.id !== id));
+      alert('Mídia local excluída com sucesso!');
+    } catch (err) {
+      console.error('Erro ao excluir mídia local:', err);
+      alert('Erro ao excluir mídia. Tente novamente.');
     } finally {
       setIsSaving(false);
     }
@@ -1216,6 +1247,33 @@ export default function MunicipioDetalhes() {
     } catch (err) {
       console.error('Erro ao adicionar membro da família:', err);
       alert('Erro ao adicionar membro da família. Tente novamente.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Família do Prefeito: excluir item
+  const handleDeleteFamilia = async (id: string) => {
+    if (userNivel === 1) {
+      alert('Usuários de nível 1 não podem excluir membros da família.');
+      return;
+    }
+    if (!id) return;
+    if (!confirm('Tem certeza que deseja excluir este membro da família?')) return;
+    setIsSaving(true);
+    try {
+      const { error } = await supabase
+        .from('familia_prefeito')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      setFamiliaLista(prev => (prev || []).filter(item => item.id !== id));
+      alert('Membro da família excluído com sucesso!');
+    } catch (err) {
+      console.error('Erro ao excluir membro da família:', err);
+      alert('Erro ao excluir. Tente novamente.');
     } finally {
       setIsSaving(false);
     }
@@ -2665,16 +2723,26 @@ export default function MunicipioDetalhes() {
                 <div className="space-y-3 max-h-64 overflow-y-auto">
                   {familiaLista.map((m) => (
                     <div key={m.id} className="border rounded-lg p-3 bg-blue-50 relative">
-                      {/* Botão editar */}
+                      {/* Ações: editar e excluir */}
                       {userNivel !== 1 && (
-                        <button
-                          onClick={() => handleOpenEditFamilia(m)}
-                          className="absolute right-3 top-3 bg-white border border-blue-200 text-psd-blue rounded-full w-7 h-7 flex items-center justify-center shadow"
-                          aria-label={`Editar ${m.nome || 'membro da família'}`}
-                          title="Editar"
-                        >
-                          <Edit size={14} />
-                        </button>
+                        <div className="absolute right-3 top-3 flex gap-2">
+                          <button
+                            onClick={() => handleOpenEditFamilia(m)}
+                            className="bg-white border border-blue-200 text-psd-blue rounded-full w-7 h-7 flex items-center justify-center shadow"
+                            aria-label={`Editar ${m.nome || 'membro da família'}`}
+                            title="Editar"
+                          >
+                            <Edit size={14} />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteFamilia(m.id)}
+                            className="bg-white border border-red-200 text-red-600 rounded-full w-7 h-7 flex items-center justify-center shadow"
+                            aria-label={`Excluir ${m.nome || 'membro da família'}`}
+                            title="Excluir"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
                       )}
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
@@ -2723,7 +2791,27 @@ export default function MunicipioDetalhes() {
               {midiasLocais.length > 0 ? (
                 <div className="space-y-3 max-h-64 overflow-y-auto">
                   {midiasLocais.map((midia) => (
-                    <div key={midia.id} className="border rounded-lg p-3 bg-purple-50">
+                    <div key={midia.id} className="border rounded-lg p-3 bg-purple-50 relative">
+                      {userNivel !== 1 && (
+                        <div className="absolute right-3 top-3 flex gap-2">
+                          <button
+                            onClick={() => alert('Funcionalidade de edição de mídias em desenvolvimento')}
+                            className="bg-white border border-purple-200 text-purple-700 rounded-full w-7 h-7 flex items-center justify-center shadow"
+                            aria-label={`Editar ${midia.nome || 'mídia local'}`}
+                            title="Editar"
+                          >
+                            <Edit size={14} />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteMidiaLocal(midia.id)}
+                            className="bg-white border border-red-200 text-red-600 rounded-full w-7 h-7 flex items-center justify-center shadow"
+                            aria-label={`Excluir ${midia.nome || 'mídia local'}`}
+                            title="Excluir"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
+                      )}
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
@@ -2733,9 +2821,9 @@ export default function MunicipioDetalhes() {
                             )}
                           </div>
                           {/* Link clicável */}
-                          {midia.contato && (
+                          {midia.url && (
                             (() => {
-                              const raw = String(midia.contato).trim();
+                              const raw = String(midia.url).trim();
                               const isUrl = /^(https?:\/\/)/i.test(raw) || /^www\./i.test(raw) || /\.[a-z]{2,}$/i.test(raw);
                               const href = isUrl ? (raw.startsWith('http') ? raw : `https://${raw}`) : '';
                               return (
@@ -2755,14 +2843,6 @@ export default function MunicipioDetalhes() {
                             <p className="text-xs text-gray-500 italic mt-1">{midia.observacoes}</p>
                           )}
                         </div>
-                        {userNivel !== 1 && (
-                          <button 
-                            onClick={() => alert('Funcionalidade de edição de mídias em desenvolvimento')}
-                            className="bg-purple-600 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-purple-700"
-                          >
-                            <Edit size={14} />
-                          </button>
-                        )}
                       </div>
                     </div>
                   ))}
@@ -3602,8 +3682,8 @@ export default function MunicipioDetalhes() {
             <label className="text-xs text-gray-600">Link / Contato</label>
             <input
               type="text"
-              value={midiaForm.contato}
-              onChange={(e) => setMidiaForm(prev => ({ ...prev, contato: e.target.value }))}
+              value={midiaForm.url}
+              onChange={(e) => setMidiaForm(prev => ({ ...prev, url: e.target.value }))}
               className="w-full p-2 border border-gray-300 rounded mb-3"
               placeholder="https://radioweb.com.br"
             />
