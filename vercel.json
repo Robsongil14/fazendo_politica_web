@@ -1,7 +1,7 @@
 {
   "framework": "nextjs",
-  "buildCommand": "npm ci --prefix web_version && npm run build --prefix web_version",
-  "installCommand": "npm ci --prefix web_version",
-  "outputDirectory": "web_version/.next",
-  "devCommand": "npm run dev --prefix web_version"
+  "buildCommand": "npm ci && npm run build",
+  "installCommand": "npm ci",
+  "outputDirectory": ".next",
+  "devCommand": "npm run dev"
 }
