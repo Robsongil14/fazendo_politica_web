@@ -25,7 +25,7 @@ interface ProfileRow {
 
 export default function AdminUsersPage() {
   const router = useRouter()
-  const { user, profile } = useAuth()
+  const { user, profile, profileLoading } = useAuth()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [profiles, setProfiles] = useState<ProfileRow[]>([])
@@ -36,14 +36,14 @@ export default function AdminUsersPage() {
 
   useEffect(() => {
     // Aguarda o perfil estar disponível antes de decidir
-    if (!profile) return
+    if (profileLoading || !profile) return
     if (!isAdmin) {
       // Não redireciona automaticamente; apenas mostra mensagem e evita carregar
       setLoading(false)
       return
     }
     loadProfiles()
-  }, [profile, isAdmin])
+  }, [profile, isAdmin, profileLoading])
 
   async function loadProfiles() {
     try {
@@ -229,7 +229,9 @@ export default function AdminUsersPage() {
 
         {/* Lista e edição de perfis */}
 
-        {profile && !isAdmin ? (
+        {profileLoading ? (
+          <div className="text-white">Carregando perfil...</div>
+        ) : profile && !isAdmin ? (
           <div className="bg-white rounded-lg shadow-md p-4">
             <p className="text-red-600">Você não tem permissão para acessar esta área.</p>
           </div>

@@ -18,6 +18,7 @@ interface AuthContextType {
   session: Session | null
   loading: boolean
   profile: Profile | null
+  profileLoading: boolean
   signIn: (email: string, password: string) => Promise<{ error?: any }>
   signOut: () => Promise<void>
 }
@@ -29,6 +30,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
   const [profile, setProfile] = useState<Profile | null>(null)
+  const [profileLoading, setProfileLoading] = useState(false)
 
   useEffect(() => {
     // Obter sessão inicial
@@ -84,8 +86,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Carregar perfil do usuário (tabela public.profiles)
   useEffect(() => {
     const loadProfile = async () => {
+      setProfileLoading(true)
       if (!user) {
         setProfile(null)
+        setProfileLoading(false)
         return
       }
       try {
@@ -96,15 +100,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           .single()
 
         if (error) {
+          // Tentar criar perfil via rota interna (service role) se não existir
+          try {
+            const resp = await fetch('/api/create-profile', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                userId: user.id,
+                name: (user as any)?.user_metadata?.name || (user as any)?.email || null,
+              }),
+            })
+            if (resp.ok) {
+              const { data: data2, error: error2 } = await supabase
+                .from('profiles')
+                .select('id, access_level, role, permissions, full_name, avatar_url')
+                .eq('id', user.id)
+                .single()
+              if (!error2 && data2) {
+                setProfile(data2 as Profile)
+                setProfileLoading(false)
+                return
+              }
+            }
+          } catch (e) {
+            console.warn('Falha ao criar perfil automaticamente:', e)
+          }
           // Não bloquear aplicação por erro de perfil; apenas logar
           console.warn('Falha ao carregar perfil:', error)
           setProfile(null)
+          setProfileLoading(false)
           return
         }
         setProfile(data as Profile)
+        setProfileLoading(false)
       } catch (err) {
         console.warn('Erro inesperado ao carregar perfil:', err)
         setProfile(null)
+        setProfileLoading(false)
       }
     }
 
@@ -137,6 +169,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     session,
     loading,
     profile,
+    profileLoading,
     signIn,
     signOut,
   }

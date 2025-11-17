@@ -22,10 +22,19 @@ export async function POST(req: NextRequest) {
     const userId = body?.userId as string | undefined
 
     const channel = admin.channel('app_control')
-    const status = await channel.subscribe()
-    if (status !== 'SUBSCRIBED') {
-      return NextResponse.json({ error: 'Falha ao subscrever canal' }, { status: 500 })
-    }
+    await new Promise<void>((resolve, reject) => {
+      try {
+        channel.subscribe((status: 'SUBSCRIBED' | 'TIMED_OUT' | 'CHANNEL_ERROR' | 'CLOSED') => {
+          if (status === 'SUBSCRIBED') {
+            resolve()
+          } else if (status === 'TIMED_OUT' || status === 'CHANNEL_ERROR' || status === 'CLOSED') {
+            reject(new Error(`Falha ao subscrever canal: ${status}`))
+          }
+        })
+      } catch (e) {
+        reject(e as any)
+      }
+    })
 
     const event = scope === 'user' && userId
       ? { event: 'logout_user', payload: { userId } }

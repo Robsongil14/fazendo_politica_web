@@ -83,7 +83,7 @@ export default function MunicipiosPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const { signOut, profile } = useAuth()
+  const { signOut, profile, profileLoading } = useAuth()
   const router = useRouter()
 
   useEffect(() => {
@@ -185,7 +185,15 @@ export default function MunicipiosPage() {
               <LogOut className="w-4 h-4 mr-2" />
               Sair
             </button>
-            {profile?.access_level === 4 || profile?.permissions?.is_admin ? (
+            {profileLoading ? (
+              <button
+                disabled
+                className="inline-flex items-center px-4 py-2 rounded-lg text-gray-800 font-bold shadow-md transition-shadow opacity-70 cursor-not-allowed"
+                style={{ backgroundColor: PSD_YELLOW }}
+              >
+                Carregando...
+              </button>
+            ) : (profile?.access_level === 4 || profile?.permissions?.is_admin) ? (
               <button
                 onClick={() => router.push('/admin/users')}
                 className="inline-flex items-center px-4 py-2 rounded-lg text-gray-800 font-bold shadow-md hover:shadow-lg transition-shadow"
