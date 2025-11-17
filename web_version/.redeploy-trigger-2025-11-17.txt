@@ -1,0 +1,1 @@
+Redeploy trigger: commit para acionar build na Vercel.
