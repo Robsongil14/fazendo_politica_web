@@ -50,6 +50,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => subscription.unsubscribe()
   }, [])
 
+  // Listener Realtime para forçar logout de todos ou por usuário
+  useEffect(() => {
+    const channel = supabase
+      .channel('app_control')
+      .on('broadcast', { event: 'logout_all' }, async () => {
+        try {
+          await supabase.auth.signOut()
+        } catch (e) {
+          console.warn('Falha ao executar signOut no broadcast logout_all:', e)
+        }
+      })
+      .on('broadcast', { event: 'logout_user' }, async (payload: any) => {
+        try {
+          const targetId = payload?.userId
+          if (user && targetId && user.id === targetId) {
+            await supabase.auth.signOut()
+          }
+        } catch (e) {
+          console.warn('Falha ao executar signOut no broadcast logout_user:', e)
+        }
+      })
+
+    channel.subscribe()
+
+    return () => {
+      try {
+        supabase.removeChannel(channel)
+      } catch {}
+    }
+  }, [user])
+
   // Carregar perfil do usuário (tabela public.profiles)
   useEffect(() => {
     const loadProfile = async () => {

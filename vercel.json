@@ -1,10 +1,6 @@
 {
   "version": 2,
   "builds": [
-    { "src": "web_version/package.json", "use": "@vercel/next" }
-  ],
-  "installCommand": "cd web_version && npm ci",
-  "buildCommand": "cd web_version && npm run build",
-  "devCommand": "cd web_version && npm run dev",
-  "outputDirectory": "web_version/.next"
+    { "src": "web_version", "use": "@vercel/next" }
+  ]
 }

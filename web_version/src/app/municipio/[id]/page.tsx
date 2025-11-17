@@ -181,14 +181,76 @@ interface DeputadoEstadual {
     observacoes?: string;
   }
 
-// Família do Prefeito: itens individuais (ex.: primeira-dama, filho, filha)
-interface FamiliaMembro {
-  id: string;
-  municipio_id: string;
-  tipo?: string; // 'primeira_dama' | 'primeiro_cavalheiro' | 'filho' | 'filha'
-  nome?: string;
-  observacoes?: string;
-}
+  // Família do Prefeito: itens individuais (ex.: primeira-dama, filho)
+  interface FamiliaMembro {
+    id: string;
+    municipio_id: string;
+    tipo?: string; // 'primeira_dama' | 'filho'
+    nome?: string;
+    observacoes?: string;
+  }
+
+  // Helper para mapear registros privados (dados_editaveis_nivel1) para FamiliaMembro
+  const mapPrivadoParaFamilia = (row: any): FamiliaMembro => ({
+    id: row.id,
+    municipio_id: row.municipio_id,
+    tipo: row.conteudo?.tipo || '',
+    nome: row.conteudo?.nome || '',
+    observacoes: row.conteudo?.observacoes || ''
+  });
+
+  const mapPrivadoParaMidia = (row: any): MidiaLocal => ({
+    id: row.id,
+    municipio_id: row.municipio_id,
+    nome: row.conteudo?.nome || '',
+    tipo: row.conteudo?.tipo || '',
+    url: row.conteudo?.url || '',
+    observacoes: row.conteudo?.observacoes || ''
+  });
+
+  // Mapeamentos para dados privados de outras seções
+  const mapPrivadoParaPrograma = (row: any): ProgramaEmenda => ({
+    id: row.id,
+    municipio_id: row.municipio_id,
+    esfera: row.conteudo?.esfera === 'federal' ? 'federal' : 'estadual',
+    parlamentar_tipo: row.conteudo?.parlamentar_tipo || null,
+    parlamentar_nome: row.conteudo?.parlamentar_nome || null,
+    orgao_sigla: row.conteudo?.orgao_sigla || null,
+    orgao_nome: row.conteudo?.orgao_nome || null,
+    area: row.conteudo?.area || null,
+    observacoes: row.conteudo?.observacoes || null
+  });
+
+  const mapPrivadoParaLideranca = (row: any): LiderancaPessoa => ({
+    id: row.id,
+    municipio_id: row.municipio_id,
+    nome: row.conteudo?.nome || '',
+    partido: row.conteudo?.partido || '',
+    votos_recebidos: row.conteudo?.votos_recebidos ?? undefined,
+    historico: row.conteudo?.historico || undefined,
+    observacoes: row.conteudo?.observacoes || ''
+  });
+
+  const mapPrivadoParaBandaBLocal = (row: any): BandaBLocal => ({
+    id: row.id,
+    municipio_id: row.municipio_id,
+    nome: row.conteudo?.nome || '',
+    partido: row.conteudo?.partido || '',
+    votos_recebidos: row.conteudo?.votos_recebidos ?? undefined,
+    historico: row.conteudo?.historico || undefined,
+    observacoes: row.conteudo?.observacoes || ''
+  });
+
+  const mapPrivadoParaBandaBPolitico = (row: any): BandaBPolitico => ({
+    id: row.id,
+    municipio_id: row.municipio_id,
+    nome: row.conteudo?.nome || '',
+    esfera: row.conteudo?.esfera === 'estadual' ? 'estadual' : 'federal',
+    partido: row.conteudo?.partido || '',
+    votos_recebidos: row.conteudo?.votos_recebidos ?? undefined,
+    historico: row.conteudo?.historico || undefined,
+    observacoes: row.conteudo?.observacoes || ''
+  });
 
 // Programas/Emendas: itens com parlamentar e órgão
   interface ProgramaEmenda {
@@ -370,7 +432,7 @@ export default function MunicipioDetalhes() {
   const [isSaving, setIsSaving] = useState(false);
   const [editingDeputado, setEditingDeputado] = useState<{type: 'federal' | 'estadual' | 'vereador', id: string, field: string} | null>(null);
   const [editingDeputadoValue, setEditingDeputadoValue] = useState('');
-  const [userNivel, setUserNivel] = useState<number>(1);
+  const [userNivel, setUserNivel] = useState<number>(profile?.access_level ?? 1);
   useEffect(() => {
     if (profile && typeof profile.access_level === 'number') {
       setUserNivel(profile.access_level)
@@ -474,10 +536,6 @@ export default function MunicipioDetalhes() {
 
   // Lideranças: abrir modal de adição
   const handleOpenAddLideranca = () => {
-    if (userNivel === 1) {
-      alert('Usuários de nível 1 não podem adicionar.');
-      return;
-    }
     setEditingLideranca(null);
     setLiderancaForm({});
     setShowAddLiderancaModal(true);
@@ -485,10 +543,6 @@ export default function MunicipioDetalhes() {
 
   // Lideranças: abrir modal em modo edição
   const handleOpenEditLideranca = (item: LiderancaPessoa) => {
-    if (userNivel === 1) {
-      alert('Usuários de nível 1 não podem editar.');
-      return;
-    }
     setEditingLideranca(item);
     setLiderancaForm({
       nome: item.nome || undefined,
@@ -505,30 +559,69 @@ export default function MunicipioDetalhes() {
     if (!municipio) return;
     setIsSaving(true);
     try {
-      const payload: any = {
-        municipio_id: municipio.id,
-        nome: liderancaForm.nome || null,
-        partido: liderancaForm.partido || null,
-        votos_recebidos: liderancaForm.votos_recebidos || null,
-        historico: liderancaForm.historico || null,
-        observacoes: liderancaForm.observacoes || null,
-      };
+      if (userNivel === 1) {
+        if (!user?.id) throw new Error('Usuário não autenticado.');
+        const conteudo = {
+          nome: liderancaForm.nome || null,
+          partido: liderancaForm.partido || null,
+          votos_recebidos: liderancaForm.votos_recebidos || null,
+          historico: liderancaForm.historico || null,
+          observacoes: liderancaForm.observacoes || null,
+        };
 
-      if (editingLideranca) {
-        const { error } = await supabase
-          .from('liderancas')
-          .update(payload)
-          .eq('id', editingLideranca.id);
-        if (error) throw error;
-        setLiderancas(prev => prev.map(l => l.id === editingLideranca.id ? { ...l, ...payload } as LiderancaPessoa : l));
+        if (editingLideranca) {
+          const { data, error } = await supabase
+            .from('dados_editaveis_nivel1')
+            .update({ titulo: 'lideranca', conteudo })
+            .eq('id', editingLideranca.id)
+            .eq('user_id', user.id)
+            .select()
+            .single();
+          if (error) throw error;
+          const mapped = mapPrivadoParaLideranca(data);
+          setLiderancas(prev => prev.map(l => l.id === mapped.id ? mapped : l));
+        } else {
+          const { data, error } = await supabase
+            .from('dados_editaveis_nivel1')
+            .insert({
+              user_id: user.id,
+              municipio_id: municipio.id,
+              categoria: 'liderancas',
+              titulo: 'lideranca',
+              conteudo
+            })
+            .select()
+            .single();
+          if (error) throw error;
+          const mapped = mapPrivadoParaLideranca(data);
+          setLiderancas(prev => [mapped, ...(prev || [])]);
+        }
       } else {
-        const { data, error } = await supabase
-          .from('liderancas')
-          .insert(payload)
-          .select()
-          .single();
-        if (error) throw error;
-        setLiderancas(prev => [data as LiderancaPessoa, ...(prev || [])]);
+        const payload: any = {
+          municipio_id: municipio.id,
+          nome: liderancaForm.nome || null,
+          partido: liderancaForm.partido || null,
+          votos_recebidos: liderancaForm.votos_recebidos || null,
+          historico: liderancaForm.historico || null,
+          observacoes: liderancaForm.observacoes || null,
+        };
+
+        if (editingLideranca) {
+          const { error } = await supabase
+            .from('liderancas')
+            .update(payload)
+            .eq('id', editingLideranca.id);
+          if (error) throw error;
+          setLiderancas(prev => prev.map(l => l.id === editingLideranca.id ? { ...l, ...payload } as LiderancaPessoa : l));
+        } else {
+          const { data, error } = await supabase
+            .from('liderancas')
+            .insert(payload)
+            .select()
+            .single();
+          if (error) throw error;
+          setLiderancas(prev => [data as LiderancaPessoa, ...(prev || [])]);
+        }
       }
 
       setShowAddLiderancaModal(false);
@@ -544,18 +637,24 @@ export default function MunicipioDetalhes() {
 
   // Lideranças: excluir
   const handleDeleteLideranca = async (id: string) => {
-    if (userNivel === 1) {
-      alert('Usuários de nível 1 não podem excluir.');
-      return;
-    }
     if (!confirm('Tem certeza que deseja excluir esta liderança?')) return;
     setIsSaving(true);
     try {
-      const { error } = await supabase
-        .from('liderancas')
-        .delete()
-        .eq('id', id);
-      if (error) throw error;
+      if (userNivel === 1) {
+        if (!user?.id) throw new Error('Usuário não autenticado.');
+        const { error } = await supabase
+          .from('dados_editaveis_nivel1')
+          .delete()
+          .eq('id', id)
+          .eq('user_id', user.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('liderancas')
+          .delete()
+          .eq('id', id);
+        if (error) throw error;
+      }
       setLiderancas(prev => prev.filter(l => l.id !== id));
       alert('Liderança excluída!');
     } catch (err) {
@@ -568,10 +667,6 @@ export default function MunicipioDetalhes() {
 
   // Banda B (Locais): abrir modal de adição
   const handleOpenAddBandaBLocal = () => {
-    if (userNivel === 1) {
-      alert('Usuários de nível 1 não podem adicionar.');
-      return;
-    }
     setEditingBandaBLocal(null);
     setBandaBLocalForm({});
     setShowAddBandaBLocalModal(true);
@@ -579,10 +674,6 @@ export default function MunicipioDetalhes() {
 
   // Banda B (Locais): abrir modal em modo edição
   const handleOpenEditBandaBLocal = (item: BandaBLocal) => {
-    if (userNivel === 1) {
-      alert('Usuários de nível 1 não podem editar.');
-      return;
-    }
     setEditingBandaBLocal(item);
     setBandaBLocalForm({
       nome: item.nome || undefined,
@@ -599,30 +690,69 @@ export default function MunicipioDetalhes() {
     if (!municipio) return;
     setIsSaving(true);
     try {
-      const payload: any = {
-        municipio_id: municipio.id,
-        nome: bandaBLocalForm.nome || null,
-        partido: bandaBLocalForm.partido || null,
-        votos_recebidos: bandaBLocalForm.votos_recebidos || null,
-        historico: bandaBLocalForm.historico || null,
-        observacoes: bandaBLocalForm.observacoes || null,
-      };
+      if (userNivel === 1) {
+        if (!user?.id) throw new Error('Usuário não autenticado.');
+        const conteudo = {
+          nome: bandaBLocalForm.nome || null,
+          partido: bandaBLocalForm.partido || null,
+          votos_recebidos: bandaBLocalForm.votos_recebidos || null,
+          historico: bandaBLocalForm.historico || null,
+          observacoes: bandaBLocalForm.observacoes || null,
+        };
 
-      if (editingBandaBLocal) {
-        const { error } = await supabase
-          .from('banda_b')
-          .update(payload)
-          .eq('id', editingBandaBLocal.id);
-        if (error) throw error;
-        setBandaBLocais(prev => prev.map(b => b.id === editingBandaBLocal.id ? { ...b, ...payload } as BandaBLocal : b));
+        if (editingBandaBLocal) {
+          const { data, error } = await supabase
+            .from('dados_editaveis_nivel1')
+            .update({ titulo: 'banda_b_local', conteudo })
+            .eq('id', editingBandaBLocal.id)
+            .eq('user_id', user.id)
+            .select()
+            .single();
+          if (error) throw error;
+          const mapped = mapPrivadoParaBandaBLocal(data);
+          setBandaBLocais(prev => prev.map(b => b.id === mapped.id ? mapped : b));
+        } else {
+          const { data, error } = await supabase
+            .from('dados_editaveis_nivel1')
+            .insert({
+              user_id: user.id,
+              municipio_id: municipio.id,
+              categoria: 'banda_b_local',
+              titulo: 'banda_b_local',
+              conteudo
+            })
+            .select()
+            .single();
+          if (error) throw error;
+          const mapped = mapPrivadoParaBandaBLocal(data);
+          setBandaBLocais(prev => [mapped, ...(prev || [])]);
+        }
       } else {
-        const { data, error } = await supabase
-          .from('banda_b')
-          .insert(payload)
-          .select()
-          .single();
-        if (error) throw error;
-        setBandaBLocais(prev => [data as BandaBLocal, ...(prev || [])]);
+        const payload: any = {
+          municipio_id: municipio.id,
+          nome: bandaBLocalForm.nome || null,
+          partido: bandaBLocalForm.partido || null,
+          votos_recebidos: bandaBLocalForm.votos_recebidos || null,
+          historico: bandaBLocalForm.historico || null,
+          observacoes: bandaBLocalForm.observacoes || null,
+        };
+
+        if (editingBandaBLocal) {
+          const { error } = await supabase
+            .from('banda_b')
+            .update(payload)
+            .eq('id', editingBandaBLocal.id);
+          if (error) throw error;
+          setBandaBLocais(prev => prev.map(b => b.id === editingBandaBLocal.id ? { ...b, ...payload } as BandaBLocal : b));
+        } else {
+          const { data, error } = await supabase
+            .from('banda_b')
+            .insert(payload)
+            .select()
+            .single();
+          if (error) throw error;
+          setBandaBLocais(prev => [data as BandaBLocal, ...(prev || [])]);
+        }
       }
 
       setShowAddBandaBLocalModal(false);
@@ -638,18 +768,24 @@ export default function MunicipioDetalhes() {
 
   // Banda B (Locais): excluir
   const handleDeleteBandaBLocal = async (id: string) => {
-    if (userNivel === 1) {
-      alert('Usuários de nível 1 não podem excluir.');
-      return;
-    }
     if (!confirm('Tem certeza que deseja excluir este item da Banda B?')) return;
     setIsSaving(true);
     try {
-      const { error } = await supabase
-        .from('banda_b')
-        .delete()
-        .eq('id', id);
-      if (error) throw error;
+      if (userNivel === 1) {
+        if (!user?.id) throw new Error('Usuário não autenticado.');
+        const { error } = await supabase
+          .from('dados_editaveis_nivel1')
+          .delete()
+          .eq('id', id)
+          .eq('user_id', user.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('banda_b')
+          .delete()
+          .eq('id', id);
+        if (error) throw error;
+      }
       setBandaBLocais(prev => prev.filter(b => b.id !== id));
       alert('Item da Banda B excluído!');
     } catch (err) {
@@ -662,10 +798,6 @@ export default function MunicipioDetalhes() {
 
   // Banda B: abrir modal de adição
   const handleOpenAddBandaB = () => {
-    if (userNivel === 1) {
-      alert('Usuários de nível 1 não podem adicionar.');
-      return;
-    }
     setEditingBandaB(null);
     setBandaBForm({ esfera: 'federal' });
     setShowAddBandaBModal(true);
@@ -673,10 +805,6 @@ export default function MunicipioDetalhes() {
 
   // Banda B: abrir modal em modo edição
   const handleOpenEditBandaB = (item: BandaBPolitico) => {
-    if (userNivel === 1) {
-      alert('Usuários de nível 1 não podem editar.');
-      return;
-    }
     setEditingBandaB(item);
     setBandaBForm({
       nome: item.nome || undefined,
@@ -694,31 +822,71 @@ export default function MunicipioDetalhes() {
     if (!municipio) return;
     setIsSaving(true);
     try {
-      const payload: any = {
-        municipio_id: municipio.id,
-        nome: bandaBForm.nome || null,
-        esfera: (bandaBForm.esfera as 'federal' | 'estadual') || 'federal',
-        partido: bandaBForm.partido || null,
-        votos_recebidos: bandaBForm.votos_recebidos || null,
-        historico: bandaBForm.historico || null,
-        observacoes: bandaBForm.observacoes || null,
-      };
+      if (userNivel === 1) {
+        if (!user?.id) throw new Error('Usuário não autenticado.');
+        const conteudo = {
+          nome: bandaBForm.nome || null,
+          esfera: (bandaBForm.esfera as 'federal' | 'estadual') || 'federal',
+          partido: bandaBForm.partido || null,
+          votos_recebidos: bandaBForm.votos_recebidos || null,
+          historico: bandaBForm.historico || null,
+          observacoes: bandaBForm.observacoes || null,
+        };
 
-      if (editingBandaB) {
-        const { error } = await supabase
-          .from('banda_b_politicos')
-          .update(payload)
-          .eq('id', editingBandaB.id);
-        if (error) throw error;
-        setBandaBPoliticos(prev => prev.map(b => b.id === editingBandaB.id ? { ...b, ...payload } as BandaBPolitico : b));
+        if (editingBandaB) {
+          const { data, error } = await supabase
+            .from('dados_editaveis_nivel1')
+            .update({ titulo: 'deputado_banda_b', conteudo })
+            .eq('id', editingBandaB.id)
+            .eq('user_id', user.id)
+            .select()
+            .single();
+          if (error) throw error;
+          const mapped = mapPrivadoParaBandaBPolitico(data);
+          setBandaBPoliticos(prev => prev.map(b => b.id === mapped.id ? mapped : b));
+        } else {
+          const { data, error } = await supabase
+            .from('dados_editaveis_nivel1')
+            .insert({
+              user_id: user.id,
+              municipio_id: municipio.id,
+              categoria: 'banda_b_politicos',
+              titulo: 'deputado_banda_b',
+              conteudo
+            })
+            .select()
+            .single();
+          if (error) throw error;
+          const mapped = mapPrivadoParaBandaBPolitico(data);
+          setBandaBPoliticos(prev => [mapped, ...(prev || [])]);
+        }
       } else {
-        const { data, error } = await supabase
-          .from('banda_b_politicos')
-          .insert(payload)
-          .select()
-          .single();
-        if (error) throw error;
-        setBandaBPoliticos(prev => [data as BandaBPolitico, ...(prev || [])]);
+        const payload: any = {
+          municipio_id: municipio.id,
+          nome: bandaBForm.nome || null,
+          esfera: (bandaBForm.esfera as 'federal' | 'estadual') || 'federal',
+          partido: bandaBForm.partido || null,
+          votos_recebidos: bandaBForm.votos_recebidos || null,
+          historico: bandaBForm.historico || null,
+          observacoes: bandaBForm.observacoes || null,
+        };
+
+        if (editingBandaB) {
+          const { error } = await supabase
+            .from('banda_b_politicos')
+            .update(payload)
+            .eq('id', editingBandaB.id);
+          if (error) throw error;
+          setBandaBPoliticos(prev => prev.map(b => b.id === editingBandaB.id ? { ...b, ...payload } as BandaBPolitico : b));
+        } else {
+          const { data, error } = await supabase
+            .from('banda_b_politicos')
+            .insert(payload)
+            .select()
+            .single();
+          if (error) throw error;
+          setBandaBPoliticos(prev => [data as BandaBPolitico, ...(prev || [])]);
+        }
       }
 
       setShowAddBandaBModal(false);
@@ -734,18 +902,24 @@ export default function MunicipioDetalhes() {
 
   // Banda B: excluir
   const handleDeleteBandaB = async (id: string) => {
-    if (userNivel === 1) {
-      alert('Usuários de nível 1 não podem excluir.');
-      return;
-    }
     if (!confirm('Tem certeza que deseja excluir este deputado Banda B?')) return;
     setIsSaving(true);
     try {
-      const { error } = await supabase
-        .from('banda_b_politicos')
-        .delete()
-        .eq('id', id);
-      if (error) throw error;
+      if (userNivel === 1) {
+        if (!user?.id) throw new Error('Usuário não autenticado.');
+        const { error } = await supabase
+          .from('dados_editaveis_nivel1')
+          .delete()
+          .eq('id', id)
+          .eq('user_id', user.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('banda_b_politicos')
+          .delete()
+          .eq('id', id);
+        if (error) throw error;
+      }
       setBandaBPoliticos(prev => prev.filter(b => b.id !== id));
       alert('Deputado Banda B excluído!');
     } catch (err) {
@@ -942,8 +1116,9 @@ export default function MunicipioDetalhes() {
   const [bandaBForm, setBandaBForm] = useState<Partial<BandaBPolitico>>({ esfera: 'federal' });
 
   const handleOpenAddMidia = () => {
-    if (userNivel === 1) {
-      alert('Usuários de nível 1 não podem adicionar mídias.');
+    // Para Nível 1, exigir usuário autenticado antes de abrir o modal
+    if (userNivel === 1 && !user?.id) {
+      alert('Faça login para adicionar seus dados privados (Nível 1).');
       return;
     }
     setMidiaForm({ nome: '', tipo: '', url: '', observacoes: '' });
@@ -959,24 +1134,51 @@ export default function MunicipioDetalhes() {
     }
     setIsSaving(true);
     try {
-      const newMidia = {
-        municipio_id: municipio.id,
-        nome: midiaForm.nome,
-        tipo: midiaForm.tipo,
-        url: midiaForm.url || null
-      };
+      if (userNivel === 1) {
+        if (!user?.id) throw new Error('Usuário não autenticado.');
+        const { data, error } = await supabase
+          .from('dados_editaveis_nivel1')
+          .insert({
+            user_id: user.id,
+            municipio_id: municipio.id,
+            categoria: 'midia',
+            titulo: 'midia_local',
+            conteudo: {
+              nome: midiaForm.nome || null,
+              tipo: midiaForm.tipo || null,
+              url: midiaForm.url || null,
+              observacoes: midiaForm.observacoes || null
+            }
+          })
+          .select()
+          .single();
 
-      const { data, error } = await supabase
-        .from('midias_locais')
-        .insert(newMidia)
-        .select()
-        .single();
+        if (error) throw error;
 
-      if (error) throw error;
+        const mapped = mapPrivadoParaMidia(data);
+        setMidiasLocais(prev => [mapped, ...(prev || [])]);
+        setShowAddMidiaModal(false);
+        alert('Mídia local adicionada com sucesso!');
+      } else {
+        const newMidia = {
+          municipio_id: municipio.id,
+          nome: midiaForm.nome,
+          tipo: midiaForm.tipo,
+          url: midiaForm.url || null
+        };
 
-      setMidiasLocais(prev => [data, ...(prev || [])]);
-      setShowAddMidiaModal(false);
-      alert('Mídia local adicionada com sucesso!');
+        const { data, error } = await supabase
+          .from('midias_locais')
+          .insert(newMidia)
+          .select()
+          .single();
+
+        if (error) throw error;
+
+        setMidiasLocais(prev => [data, ...(prev || [])]);
+        setShowAddMidiaModal(false);
+        alert('Mídia local adicionada com sucesso!');
+      }
     } catch (err: any) {
       console.error('Erro ao adicionar mídia:', err);
       alert(`Erro ao adicionar mídia: ${err?.message || err}`);
@@ -987,20 +1189,27 @@ export default function MunicipioDetalhes() {
 
   // Mídias Locais: excluir
   const handleDeleteMidiaLocal = async (id: string) => {
-    if (userNivel === 1) {
-      alert('Usuários de nível 1 não podem excluir mídias.');
-      return;
-    }
     if (!id) return;
     if (!confirm('Tem certeza que deseja excluir esta mídia local?')) return;
     setIsSaving(true);
     try {
-      const { error } = await supabase
-        .from('midias_locais')
-        .delete()
-        .eq('id', id);
+      if (userNivel === 1) {
+        if (!user?.id) throw new Error('Usuário não autenticado.');
+        const { error } = await supabase
+          .from('dados_editaveis_nivel1')
+          .delete()
+          .eq('id', id)
+          .eq('user_id', user.id);
 
-      if (error) throw error;
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('midias_locais')
+          .delete()
+          .eq('id', id);
+
+        if (error) throw error;
+      }
 
       setMidiasLocais(prev => (prev || []).filter(m => m.id !== id));
       alert('Mídia local excluída com sucesso!');
@@ -1014,8 +1223,9 @@ export default function MunicipioDetalhes() {
 
   // Emendas/Programas: abrir modal
   const handleOpenAddPrograma = () => {
-    if (userNivel === 1) {
-      alert('Usuários de nível 1 não podem adicionar emendas/programas.');
+    // Para Nível 1, exigir usuário autenticado antes de abrir o modal
+    if (userNivel === 1 && !user?.id) {
+      alert('Faça login para adicionar seus dados privados (Nível 1).');
       return;
     }
     setEditingPrograma(null);
@@ -1033,10 +1243,6 @@ export default function MunicipioDetalhes() {
 
   // Emendas/Programas: abrir modal em modo edição
   const handleOpenEditPrograma = (p: ProgramaEmenda) => {
-    if (userNivel === 1) {
-      alert('Usuários de nível 1 não podem editar emendas/programas.');
-      return;
-    }
     setEditingPrograma(p);
     setProgramaForm({
       esfera: p.esfera,
@@ -1063,34 +1269,64 @@ export default function MunicipioDetalhes() {
     }
     setIsSaving(true);
     try {
-      const newItem = {
-        municipio_id: municipio.id,
-        esfera: programaForm.esfera,
-        parlamentar_tipo: programaForm.parlamentar_tipo || null,
-        parlamentar_nome: programaForm.parlamentar_nome || null,
-        orgao_sigla: programaForm.orgao_sigla || null,
-        orgao_nome: programaForm.orgao_nome || null,
-        area: programaForm.area || null,
-        observacoes: programaForm.observacoes || null
-      };
+      if (userNivel === 1) {
+        if (!user?.id) throw new Error('Usuário não autenticado.');
+        const conteudo = {
+          esfera: programaForm.esfera,
+          parlamentar_tipo: programaForm.parlamentar_tipo || null,
+          parlamentar_nome: programaForm.parlamentar_nome || null,
+          orgao_sigla: programaForm.orgao_sigla || null,
+          orgao_nome: programaForm.orgao_nome || null,
+          area: programaForm.area || null,
+          observacoes: programaForm.observacoes || null
+        };
+        const { data, error } = await supabase
+          .from('dados_editaveis_nivel1')
+          .insert({
+            user_id: user.id,
+            municipio_id: municipio.id,
+            categoria: 'programas_emendas',
+            titulo: 'programa_emenda',
+            conteudo
+          })
+          .select()
+          .single();
+        if (error) throw error;
+        const mapped = mapPrivadoParaPrograma(data);
+        setProgramasEmendas(prev => [mapped, ...(prev || [])]);
+      } else {
+        const newItem = {
+          municipio_id: municipio.id,
+          esfera: programaForm.esfera,
+          parlamentar_tipo: programaForm.parlamentar_tipo || null,
+          parlamentar_nome: programaForm.parlamentar_nome || null,
+          orgao_sigla: programaForm.orgao_sigla || null,
+          orgao_nome: programaForm.orgao_nome || null,
+          area: programaForm.area || null,
+          observacoes: programaForm.observacoes || null
+        };
 
-      const { data, error } = await supabase
-        .from('programas_emendas')
-        .insert(newItem)
-        .select()
-        .single();
+        const { data, error } = await supabase
+          .from('programas_emendas')
+          .insert(newItem)
+          .select()
+          .single();
 
-      if (error) throw error;
-      setProgramasEmendas(prev => [data, ...(prev || [])]);
+        if (error) throw error;
+        setProgramasEmendas(prev => [data, ...(prev || [])]);
+      }
       setShowAddProgramaModal(false);
       alert('Emenda/Programa adicionada com sucesso!');
     } catch (err) {
       console.error('Erro ao adicionar emenda/programa:', err);
-      alert('Erro ao adicionar. Tente novamente.');
+      const msg = (err as any)?.message || (err as any)?.error?.message || 'Erro ao adicionar. Tente novamente.';
+      alert(`Erro ao adicionar: ${msg}`);
     } finally {
       setIsSaving(false);
     }
   };
+
+  // (removido duplicado) a função handleOpenAddPrograma já está definida acima com gate de login
 
   // Emendas/Programas: atualizar
   const handleUpdatePrograma = async () => {
@@ -1105,24 +1341,47 @@ export default function MunicipioDetalhes() {
     }
     setIsSaving(true);
     try {
-      const updates: Partial<ProgramaEmenda> = {
-        esfera: programaForm.esfera,
-        parlamentar_tipo: (programaForm.parlamentar_tipo as any) || null,
-        parlamentar_nome: programaForm.parlamentar_nome || null,
-        orgao_sigla: programaForm.orgao_sigla || null,
-        orgao_nome: programaForm.orgao_nome || null,
-        area: programaForm.area || null,
-        observacoes: programaForm.observacoes || null
-      };
+      if (userNivel === 1) {
+        if (!user?.id) throw new Error('Usuário não autenticado.');
+        const conteudo = {
+          esfera: programaForm.esfera,
+          parlamentar_tipo: (programaForm.parlamentar_tipo as any) || null,
+          parlamentar_nome: programaForm.parlamentar_nome || null,
+          orgao_sigla: programaForm.orgao_sigla || null,
+          orgao_nome: programaForm.orgao_nome || null,
+          area: programaForm.area || null,
+          observacoes: programaForm.observacoes || null
+        };
+        const { data, error } = await supabase
+          .from('dados_editaveis_nivel1')
+          .update({ titulo: 'programa_emenda', conteudo })
+          .eq('id', editingPrograma.id)
+          .eq('user_id', user.id)
+          .select()
+          .single();
+        if (error) throw error;
+        const mapped = mapPrivadoParaPrograma(data);
+        setProgramasEmendas(prev => prev.map(item => item.id === mapped.id ? mapped : item));
+      } else {
+        const updates: Partial<ProgramaEmenda> = {
+          esfera: programaForm.esfera,
+          parlamentar_tipo: (programaForm.parlamentar_tipo as any) || null,
+          parlamentar_nome: programaForm.parlamentar_nome || null,
+          orgao_sigla: programaForm.orgao_sigla || null,
+          orgao_nome: programaForm.orgao_nome || null,
+          area: programaForm.area || null,
+          observacoes: programaForm.observacoes || null
+        };
 
-      const { error } = await supabase
-        .from('programas_emendas')
-        .update(updates)
-        .eq('id', editingPrograma.id);
+        const { error } = await supabase
+          .from('programas_emendas')
+          .update(updates)
+          .eq('id', editingPrograma.id);
 
-      if (error) throw error;
+        if (error) throw error;
 
-      setProgramasEmendas(prev => prev.map(item => item.id === editingPrograma.id ? { ...item, ...updates } as ProgramaEmenda : item));
+        setProgramasEmendas(prev => prev.map(item => item.id === editingPrograma.id ? { ...item, ...updates } as ProgramaEmenda : item));
+      }
       setShowAddProgramaModal(false);
       setEditingPrograma(null);
       alert('Emenda/Programa atualizado com sucesso!');
@@ -1136,10 +1395,6 @@ export default function MunicipioDetalhes() {
 
   // Emendas/Programas: abrir modal de exclusão
   const handleOpenDeletePrograma = (p: ProgramaEmenda) => {
-    if (userNivel === 1) {
-      alert('Usuários de nível 1 não podem excluir emendas/programas.');
-      return;
-    }
     setProgramaToDelete(p);
     setShowDeleteProgramaModal(true);
   };
@@ -1149,12 +1404,21 @@ export default function MunicipioDetalhes() {
     if (!programaToDelete) return;
     setIsSaving(true);
     try {
-      const { error } = await supabase
-        .from('programas_emendas')
-        .delete()
-        .eq('id', programaToDelete.id);
-
-      if (error) throw error;
+      if (userNivel === 1) {
+        if (!user?.id) throw new Error('Usuário não autenticado.');
+        const { error } = await supabase
+          .from('dados_editaveis_nivel1')
+          .delete()
+          .eq('id', programaToDelete.id)
+          .eq('user_id', user.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('programas_emendas')
+          .delete()
+          .eq('id', programaToDelete.id);
+        if (error) throw error;
+      }
 
       setProgramasEmendas(prev => prev.filter(item => item.id !== programaToDelete.id));
       setShowDeleteProgramaModal(false);
@@ -1170,8 +1434,9 @@ export default function MunicipioDetalhes() {
 
   // Família do Prefeito: abrir modal de adição
   const handleOpenAddFamilia = () => {
-    if (userNivel === 1) {
-      alert('Usuários de nível 1 não podem adicionar membros da família.');
+    // Para Nível 1, exigir usuário autenticado antes de abrir o modal
+    if (userNivel === 1 && !user?.id) {
+      alert('Faça login para adicionar seus dados privados (Nível 1).');
       return;
     }
     setFamiliaItemForm({ tipo: '', nome: '', observacoes: '' });
@@ -1181,10 +1446,6 @@ export default function MunicipioDetalhes() {
 
   // Família do Prefeito: abrir modal em modo edição
   const handleOpenEditFamilia = (item: FamiliaMembro) => {
-    if (userNivel === 1) {
-      alert('Usuários de nível 1 não podem editar.');
-      return;
-    }
     setFamiliaItemForm({
       tipo: item.tipo || '',
       nome: item.nome || '',
@@ -1203,50 +1464,102 @@ export default function MunicipioDetalhes() {
     }
     setIsSaving(true);
     try {
-      if (editingFamiliaItemId) {
-        // Atualização de item existente
-        const updates = {
-          tipo: familiaItemForm.tipo || null,
-          nome: familiaItemForm.nome || null,
-          observacoes: familiaItemForm.observacoes || null
-        };
+      if (userNivel === 1) {
+        // Fluxo privado (dados_editaveis_nivel1)
+        if (!user?.id) throw new Error('Usuário não autenticado.');
+        if (editingFamiliaItemId) {
+          const { data, error } = await supabase
+            .from('dados_editaveis_nivel1')
+            .update({
+              titulo: 'membro_familia',
+              conteudo: {
+                tipo: familiaItemForm.tipo || null,
+                nome: familiaItemForm.nome || null,
+                observacoes: familiaItemForm.observacoes || null
+              }
+            })
+            .eq('id', editingFamiliaItemId)
+            .eq('user_id', user.id)
+            .select()
+            .single();
 
-        const { data, error } = await supabase
-          .from('familia_prefeito')
-          .update(updates)
-          .eq('id', editingFamiliaItemId)
-          .select()
-          .single();
+          if (error) throw error;
+          const mapped = mapPrivadoParaFamilia(data);
+          setFamiliaLista(prev => prev.map(it => it.id === mapped.id ? mapped : it));
+          setShowAddFamiliaModal(false);
+          setEditingFamiliaItemId(null);
+          alert('Membro da família atualizado com sucesso!');
+        } else {
+          const { data, error } = await supabase
+            .from('dados_editaveis_nivel1')
+            .insert({
+              user_id: user.id,
+              municipio_id: municipio.id,
+              categoria: 'familia_prefeito',
+              titulo: 'membro_familia',
+              conteudo: {
+                tipo: familiaItemForm.tipo || null,
+                nome: familiaItemForm.nome || null,
+                observacoes: familiaItemForm.observacoes || null
+              }
+            })
+            .select()
+            .single();
 
-        if (error) throw error;
-        setFamiliaLista(prev => prev.map(it => it.id === data.id ? data : it));
-        setShowAddFamiliaModal(false);
-        setEditingFamiliaItemId(null);
-        alert('Membro da família atualizado com sucesso!');
+          if (error) throw error;
+          const mapped = mapPrivadoParaFamilia(data);
+          setFamiliaLista(prev => [mapped, ...(prev || [])]);
+          setShowAddFamiliaModal(false);
+          alert('Membro da família adicionado com sucesso!');
+        }
       } else {
-        // Inserção de novo item
-        const newItem = {
-          municipio_id: municipio.id,
-          tipo: familiaItemForm.tipo || null,
-          nome: familiaItemForm.nome || null,
-          observacoes: familiaItemForm.observacoes || null
-        };
+        // Fluxo padrão (tabela pública familia_prefeito)
+        if (editingFamiliaItemId) {
+          // Atualização de item existente
+          const updates = {
+            tipo: familiaItemForm.tipo || null,
+            nome: familiaItemForm.nome || null,
+            observacoes: familiaItemForm.observacoes || null
+          };
 
-        const { data, error } = await supabase
-          .from('familia_prefeito')
-          .insert(newItem)
-          .select()
-          .single();
+          const { data, error } = await supabase
+            .from('familia_prefeito')
+            .update(updates)
+            .eq('id', editingFamiliaItemId)
+            .select()
+            .single();
 
-        if (error) throw error;
+          if (error) throw error;
+          setFamiliaLista(prev => prev.map(it => it.id === data.id ? data : it));
+          setShowAddFamiliaModal(false);
+          setEditingFamiliaItemId(null);
+          alert('Membro da família atualizado com sucesso!');
+        } else {
+          // Inserção de novo item
+          const newItem = {
+            municipio_id: municipio.id,
+            tipo: familiaItemForm.tipo || null,
+            nome: familiaItemForm.nome || null,
+            observacoes: familiaItemForm.observacoes || null
+          };
 
-        setFamiliaLista(prev => [data, ...(prev || [])]);
-        setShowAddFamiliaModal(false);
-        alert('Membro da família adicionado com sucesso!');
+          const { data, error } = await supabase
+            .from('familia_prefeito')
+            .insert(newItem)
+            .select()
+            .single();
+
+          if (error) throw error;
+
+          setFamiliaLista(prev => [data, ...(prev || [])]);
+          setShowAddFamiliaModal(false);
+          alert('Membro da família adicionado com sucesso!');
+        }
       }
     } catch (err) {
       console.error('Erro ao adicionar membro da família:', err);
-      alert('Erro ao adicionar membro da família. Tente novamente.');
+      const msg = (err as any)?.message || (err as any)?.error?.message || 'Erro ao adicionar membro da família. Tente novamente.';
+      alert(`Erro ao adicionar membro da família: ${msg}`);
     } finally {
       setIsSaving(false);
     }
@@ -1254,20 +1567,25 @@ export default function MunicipioDetalhes() {
 
   // Família do Prefeito: excluir item
   const handleDeleteFamilia = async (id: string) => {
-    if (userNivel === 1) {
-      alert('Usuários de nível 1 não podem excluir membros da família.');
-      return;
-    }
     if (!id) return;
     if (!confirm('Tem certeza que deseja excluir este membro da família?')) return;
     setIsSaving(true);
     try {
-      const { error } = await supabase
-        .from('familia_prefeito')
-        .delete()
-        .eq('id', id);
-
-      if (error) throw error;
+      if (userNivel === 1) {
+        if (!user?.id) throw new Error('Usuário não autenticado.');
+        const { error } = await supabase
+          .from('dados_editaveis_nivel1')
+          .delete()
+          .eq('id', id)
+          .eq('user_id', user.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('familia_prefeito')
+          .delete()
+          .eq('id', id);
+        if (error) throw error;
+      }
 
       setFamiliaLista(prev => (prev || []).filter(item => item.id !== id));
       alert('Membro da família excluído com sucesso!');
@@ -1329,13 +1647,15 @@ export default function MunicipioDetalhes() {
   };
 
   useEffect(() => {
-    if (municipioId) {
-      console.log('municipioId:', municipioId);
-      fetchMunicipioDetalhes();
+    if (!municipioId) return;
+    console.log('municipioId:', municipioId, 'userNivel:', userNivel, 'userId:', user?.id);
+    fetchMunicipioDetalhes();
+    // Para usuários de nível 1, aguarde o carregamento do user.id
+    if (userNivel !== 1 || user?.id) {
       fetchVereadores();
-      fetchTransferencias();
     }
-  }, [municipioId]);
+    fetchTransferencias();
+  }, [municipioId, user?.id, userNivel]);
 
   const fetchMunicipioDetalhes = async () => {
     try {
@@ -1394,63 +1714,160 @@ export default function MunicipioDetalhes() {
       }
 
       // Buscar mídias locais
-      const { data: midiasData, error: midiasError } = await supabase
-        .from('midias_locais')
-        .select('*')
-        .eq('municipio_id', municipioId)
-        .order('nome');
+      if (userNivel === 1) {
+        if (user?.id) {
+          const { data: privMidias, error: privMidiasError } = await supabase
+            .from('dados_editaveis_nivel1')
+            .select('id, municipio_id, categoria, conteudo')
+            .eq('municipio_id', municipioId)
+            .eq('user_id', user.id)
+            .eq('categoria', 'midia')
+            .order('id', { ascending: false });
 
-      if (midiasError) {
-        console.error('Erro ao buscar mídias locais:', midiasError);
+          if (privMidiasError) {
+            console.error('Erro ao buscar mídias locais privadas:', privMidiasError);
+          } else {
+            setMidiasLocais((privMidias || []).map(mapPrivadoParaMidia));
+          }
+        } else {
+          setMidiasLocais([]);
+        }
       } else {
-        setMidiasLocais(midiasData || []);
+        const { data: midiasData, error: midiasError } = await supabase
+          .from('midias_locais')
+          .select('*')
+          .eq('municipio_id', municipioId)
+          .order('nome');
+
+        if (midiasError) {
+          console.error('Erro ao buscar mídias locais:', midiasError);
+        } else {
+          setMidiasLocais(midiasData || []);
+        }
       }
 
       // Buscar Família do Prefeito (itens individuais)
-      const { data: familiaData, error: familiaError } = await supabase
-        .from('familia_prefeito')
-        .select('*')
-        .eq('municipio_id', municipioId);
-      if (familiaError) {
-        console.error('Erro ao buscar família do prefeito:', familiaError);
+      if (userNivel === 1) {
+        if (user?.id) {
+          const { data: privFamilia, error: privFamiliaError } = await supabase
+            .from('dados_editaveis_nivel1')
+            .select('id, municipio_id, categoria, conteudo')
+            .eq('municipio_id', municipioId)
+            .eq('user_id', user.id)
+            .eq('categoria', 'familia_prefeito')
+            .order('id', { ascending: false });
+          if (privFamiliaError) {
+            console.error('Erro ao buscar família privada do prefeito:', privFamiliaError);
+          } else {
+            setFamiliaLista((privFamilia || []).map(mapPrivadoParaFamilia));
+          }
+        } else {
+          // Usuário ainda não carregado; não exibir dados públicos para nível 1
+          setFamiliaLista([]);
+        }
       } else {
-        setFamiliaLista(familiaData || []);
+        const { data: familiaData, error: familiaError } = await supabase
+          .from('familia_prefeito')
+          .select('*')
+          .eq('municipio_id', municipioId);
+        if (familiaError) {
+          console.error('Erro ao buscar família do prefeito:', familiaError);
+        } else {
+          setFamiliaLista(familiaData || []);
+        }
       }
 
       // Buscar Lideranças
-      const { data: liderancasData, error: liderancasError } = await supabase
-        .from('liderancas')
-        .select('*')
-        .eq('municipio_id', municipioId)
-        .order('nome');
-      if (liderancasError) {
-        console.error('Erro ao buscar lideranças:', liderancasError);
+      if (userNivel === 1) {
+        if (user?.id) {
+          const { data: privLiderancas, error: privLiderancasError } = await supabase
+            .from('dados_editaveis_nivel1')
+            .select('id, municipio_id, categoria, conteudo')
+            .eq('municipio_id', municipioId)
+            .eq('user_id', user.id)
+            .eq('categoria', 'liderancas')
+            .order('id', { ascending: false });
+          if (privLiderancasError) {
+            console.error('Erro ao buscar lideranças privadas:', privLiderancasError);
+          } else {
+            setLiderancas((privLiderancas || []).map(mapPrivadoParaLideranca));
+          }
+        } else {
+          setLiderancas([]);
+        }
       } else {
-        setLiderancas(liderancasData || []);
+        const { data: liderancasData, error: liderancasError } = await supabase
+          .from('liderancas')
+          .select('*')
+          .eq('municipio_id', municipioId)
+          .order('nome');
+        if (liderancasError) {
+          console.error('Erro ao buscar lideranças:', liderancasError);
+        } else {
+          setLiderancas(liderancasData || []);
+        }
       }
 
       // Buscar Banda B (locais)
-      const { data: bandaBLocaisData, error: bandaBLocaisError } = await supabase
-        .from('banda_b')
-        .select('*')
-        .eq('municipio_id', municipioId)
-        .order('nome');
-      if (bandaBLocaisError) {
-        console.error('Erro ao buscar Banda B (locais):', bandaBLocaisError);
+      if (userNivel === 1) {
+        if (user?.id) {
+          const { data: privBandaBLocais, error: privBandaBLocaisError } = await supabase
+            .from('dados_editaveis_nivel1')
+            .select('id, municipio_id, categoria, conteudo')
+            .eq('municipio_id', municipioId)
+            .eq('user_id', user.id)
+            .eq('categoria', 'banda_b_local')
+            .order('id', { ascending: false });
+          if (privBandaBLocaisError) {
+            console.error('Erro ao buscar Banda B locais privados:', privBandaBLocaisError);
+          } else {
+            setBandaBLocais((privBandaBLocais || []).map(mapPrivadoParaBandaBLocal));
+          }
+        } else {
+          setBandaBLocais([]);
+        }
       } else {
-        setBandaBLocais(bandaBLocaisData || []);
+        const { data: bandaBLocaisData, error: bandaBLocaisError } = await supabase
+          .from('banda_b')
+          .select('*')
+          .eq('municipio_id', municipioId)
+          .order('nome');
+        if (bandaBLocaisError) {
+          console.error('Erro ao buscar Banda B (locais):', bandaBLocaisError);
+        } else {
+          setBandaBLocais(bandaBLocaisData || []);
+        }
       }
 
       // Buscar Banda B (deputados)
-      const { data: bandaBData, error: bandaBError } = await supabase
-        .from('banda_b_politicos')
-        .select('*')
-        .eq('municipio_id', municipioId)
-        .order('esfera');
-      if (bandaBError) {
-        console.error('Erro ao buscar Banda B:', bandaBError);
+      if (userNivel === 1) {
+        if (user?.id) {
+          const { data: privBandaB, error: privBandaBError } = await supabase
+            .from('dados_editaveis_nivel1')
+            .select('id, municipio_id, categoria, conteudo')
+            .eq('municipio_id', municipioId)
+            .eq('user_id', user.id)
+            .eq('categoria', 'banda_b_politicos')
+            .order('id', { ascending: false });
+          if (privBandaBError) {
+            console.error('Erro ao buscar Banda B (deputados) privados:', privBandaBError);
+          } else {
+            setBandaBPoliticos((privBandaB || []).map(mapPrivadoParaBandaBPolitico));
+          }
+        } else {
+          setBandaBPoliticos([]);
+        }
       } else {
-        setBandaBPoliticos(bandaBData || []);
+        const { data: bandaBData, error: bandaBError } = await supabase
+          .from('banda_b_politicos')
+          .select('*')
+          .eq('municipio_id', municipioId)
+          .order('esfera');
+        if (bandaBError) {
+          console.error('Erro ao buscar Banda B:', bandaBError);
+        } else {
+          setBandaBPoliticos(bandaBData || []);
+        }
       }
 
       // Buscar Vice-Prefeitos
@@ -1466,15 +1883,34 @@ export default function MunicipioDetalhes() {
       }
 
       // Buscar Emendas/Programas
-      const { data: programasData, error: programasError } = await supabase
-        .from('programas_emendas')
-        .select('*')
-        .eq('municipio_id', municipioId)
-        .order('created_at', { ascending: false });
-      if (programasError) {
-        console.error('Erro ao buscar emendas/programas:', programasError);
+      if (userNivel === 1) {
+        if (user?.id) {
+          const { data: privProgramas, error: privProgramasError } = await supabase
+            .from('dados_editaveis_nivel1')
+            .select('id, municipio_id, categoria, conteudo')
+            .eq('municipio_id', municipioId)
+            .eq('user_id', user.id)
+            .eq('categoria', 'programas_emendas')
+            .order('id', { ascending: false });
+          if (privProgramasError) {
+            console.error('Erro ao buscar emendas/programas privados:', privProgramasError);
+          } else {
+            setProgramasEmendas((privProgramas || []).map(mapPrivadoParaPrograma));
+          }
+        } else {
+          setProgramasEmendas([]);
+        }
       } else {
-        setProgramasEmendas(programasData || []);
+        const { data: programasData, error: programasError } = await supabase
+          .from('programas_emendas')
+          .select('*')
+          .eq('municipio_id', municipioId)
+          .order('created_at', { ascending: false });
+        if (programasError) {
+          console.error('Erro ao buscar emendas/programas:', programasError);
+        } else {
+          setProgramasEmendas(programasData || []);
+        }
       }
 
       // Buscar candidatos a prefeito
@@ -2526,15 +2962,13 @@ export default function MunicipioDetalhes() {
           <details className="group">
             <summary className="cursor-pointer flex items-center justify-between">
               <h2 className="text-xl font-bold text-psd-blue mb-0 text-center">Emendas e Programas</h2>
-              {userNivel !== 1 && (
-                <button
-                  onClick={handleOpenAddPrograma}
-                  className="bg-blue-600 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-blue-700"
-                  title="Adicionar emenda/programa"
-                >
-                  <Plus size={16} />
-                </button>
-              )}
+              <button
+                onClick={handleOpenAddPrograma}
+                className="bg-blue-600 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-blue-700"
+                title="Adicionar emenda/programa"
+              >
+                <Plus size={16} />
+              </button>
             </summary>
             <div className="mt-4">
               {programasEmendas && programasEmendas.length > 0 ? (
@@ -2563,24 +2997,22 @@ export default function MunicipioDetalhes() {
                             <p className="text-xs text-gray-500 italic mt-1">{p.observacoes}</p>
                           )}
                         </div>
-                        {userNivel !== 1 && (
-                          <div className="flex items-center ml-3">
-                            <button
-                              onClick={() => handleOpenEditPrograma(p)}
-                              className="text-indigo-600 hover:text-indigo-800 mr-2"
-                              title="Editar emenda/programa"
-                            >
-                              <Edit size={14} />
-                            </button>
-                            <button
-                              onClick={() => handleOpenDeletePrograma(p)}
-                              className="text-red-600 hover:text-red-800"
-                              title="Excluir emenda/programa"
-                            >
-                              <X size={14} />
-                            </button>
-                          </div>
-                        )}
+                        <div className="flex items-center ml-3">
+                          <button
+                            onClick={() => handleOpenEditPrograma(p)}
+                            className="text-indigo-600 hover:text-indigo-800 mr-2"
+                            title="Editar emenda/programa"
+                          >
+                            <Edit size={14} />
+                          </button>
+                          <button
+                            onClick={() => handleOpenDeletePrograma(p)}
+                            className="text-red-600 hover:text-red-800"
+                            title="Excluir emenda/programa"
+                          >
+                            <X size={14} />
+                          </button>
+                        </div>
                       </div>
                     </div>
                   ))}
@@ -2706,17 +3138,15 @@ export default function MunicipioDetalhes() {
           <details className="group">
             <summary className="cursor-pointer flex items-center justify-between mb-4">
               <h2 className="text-xl font-bold text-psd-blue mb-0 text-center">Família do Prefeito</h2>
-              {userNivel !== 1 && (
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={handleOpenAddFamilia}
-                    className="bg-blue-600 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-blue-700"
-                    title="Adicionar membro da família"
-                  >
-                    <Plus size={16} />
-                  </button>
-                </div>
-              )}
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleOpenAddFamilia}
+                  className="bg-blue-600 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-blue-700"
+                  title="Adicionar membro da família"
+                >
+                  <Plus size={16} />
+                </button>
+              </div>
             </summary>
             <div className="mt-2">
               {familiaLista.length > 0 ? (
@@ -2724,33 +3154,31 @@ export default function MunicipioDetalhes() {
                   {familiaLista.map((m) => (
                     <div key={m.id} className="border rounded-lg p-3 bg-blue-50 relative">
                       {/* Ações: editar e excluir */}
-                      {userNivel !== 1 && (
-                        <div className="absolute right-3 top-3 flex gap-2">
-                          <button
-                            onClick={() => handleOpenEditFamilia(m)}
-                            className="bg-white border border-blue-200 text-psd-blue rounded-full w-7 h-7 flex items-center justify-center shadow"
-                            aria-label={`Editar ${m.nome || 'membro da família'}`}
-                            title="Editar"
-                          >
-                            <Edit size={14} />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteFamilia(m.id)}
-                            className="bg-white border border-red-200 text-red-600 rounded-full w-7 h-7 flex items-center justify-center shadow"
-                            aria-label={`Excluir ${m.nome || 'membro da família'}`}
-                            title="Excluir"
-                          >
-                            <X size={14} />
-                          </button>
-                        </div>
-                      )}
+                      <div className="absolute right-3 top-3 flex gap-2">
+                        <button
+                          onClick={() => handleOpenEditFamilia(m)}
+                          className="bg-white border border-blue-200 text-psd-blue rounded-full w-7 h-7 flex items-center justify-center shadow"
+                          aria-label={`Editar ${m.nome || 'membro da família'}`}
+                          title="Editar"
+                        >
+                          <Edit size={14} />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteFamilia(m.id)}
+                          className="bg-white border border-red-200 text-red-600 rounded-full w-7 h-7 flex items-center justify-center shadow"
+                          aria-label={`Excluir ${m.nome || 'membro da família'}`}
+                          title="Excluir"
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
                             <h4 className="font-bold text-gray-900">{m.nome || 'Nome não informado'}</h4>
                             {m.tipo && (
                               <span className="text-xs px-2 py-0.5 rounded bg-blue-200 text-blue-800">
-                                {m.tipo === 'primeira_dama' ? 'Primeira dama(o)' : (m.tipo === 'filho' || m.tipo === 'filha') ? 'Filho(a)' : m.tipo}
+{m.tipo === 'primeira_dama' ? 'Primeira dama(o)' : m.tipo === 'filho' ? 'Filho(a)' : m.tipo}
                               </span>
                             )}
                           </div>
@@ -2775,43 +3203,39 @@ export default function MunicipioDetalhes() {
           <details className="group">
             <summary className="cursor-pointer flex items-center justify-between mb-4">
               <h2 className="text-xl font-bold text-psd-blue mb-0 text-center">Mídias Locais</h2>
-              {userNivel !== 1 && (
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={handleOpenAddMidia}
-                    className="bg-purple-600 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-purple-700"
-                    title="Adicionar mídia local (rádio/blog)"
-                  >
-                    <Plus size={16} />
-                  </button>
-                </div>
-              )}
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleOpenAddMidia}
+                  className="bg-purple-600 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-purple-700"
+                  title="Adicionar mídia local (rádio/blog)"
+                >
+                  <Plus size={16} />
+                </button>
+              </div>
             </summary>
             <div className="mt-2">
               {midiasLocais.length > 0 ? (
                 <div className="space-y-3 max-h-64 overflow-y-auto">
                   {midiasLocais.map((midia) => (
                     <div key={midia.id} className="border rounded-lg p-3 bg-purple-50 relative">
-                      {userNivel !== 1 && (
-                        <div className="absolute right-3 top-3 flex gap-2">
-                          <button
-                            onClick={() => alert('Funcionalidade de edição de mídias em desenvolvimento')}
-                            className="bg-white border border-purple-200 text-purple-700 rounded-full w-7 h-7 flex items-center justify-center shadow"
-                            aria-label={`Editar ${midia.nome || 'mídia local'}`}
-                            title="Editar"
-                          >
-                            <Edit size={14} />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteMidiaLocal(midia.id)}
-                            className="bg-white border border-red-200 text-red-600 rounded-full w-7 h-7 flex items-center justify-center shadow"
-                            aria-label={`Excluir ${midia.nome || 'mídia local'}`}
-                            title="Excluir"
-                          >
-                            <X size={14} />
-                          </button>
-                        </div>
-                      )}
+                      <div className="absolute right-3 top-3 flex gap-2">
+                        <button
+                          onClick={() => alert('Funcionalidade de edição de mídias em desenvolvimento')}
+                          className="bg-white border border-purple-200 text-purple-700 rounded-full w-7 h-7 flex items-center justify-center shadow"
+                          aria-label={`Editar ${midia.nome || 'mídia local'}`}
+                          title="Editar"
+                        >
+                          <Edit size={14} />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteMidiaLocal(midia.id)}
+                          className="bg-white border border-red-200 text-red-600 rounded-full w-7 h-7 flex items-center justify-center shadow"
+                          aria-label={`Excluir ${midia.nome || 'mídia local'}`}
+                          title="Excluir"
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
@@ -2863,43 +3287,39 @@ export default function MunicipioDetalhes() {
           <details className="group">
             <summary className="cursor-pointer flex items-center justify-between mb-4">
               <h2 className="text-xl font-bold text-psd-blue mb-0 text-center">Banda B</h2>
-              {userNivel !== 1 && (
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={handleOpenAddBandaBLocal}
-                    className="bg-blue-600 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-blue-700"
-                    title="Adicionar Banda B"
-                  >
-                    <Plus size={16} />
-                  </button>
-                </div>
-              )}
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleOpenAddBandaBLocal}
+                  className="bg-blue-600 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-blue-700"
+                  title="Adicionar Banda B"
+                >
+                  <Plus size={16} />
+                </button>
+              </div>
             </summary>
             <div className="mt-2">
               {bandaBLocais && bandaBLocais.length > 0 ? (
                 <div className="space-y-3 max-h-64 overflow-y-auto">
                   {bandaBLocais.map((b) => (
                     <div key={b.id} className="border rounded-lg p-3 bg-blue-50 relative">
-                      {userNivel !== 1 && (
-                        <div className="absolute right-3 top-3 flex gap-2">
-                          <button
-                            onClick={() => handleOpenEditBandaBLocal(b)}
-                            className="bg-white border border-blue-200 text-psd-blue rounded-full w-7 h-7 flex items-center justify-center shadow"
-                            aria-label={`Editar ${b.nome || 'Banda B'}`}
-                            title="Editar"
-                          >
-                            <Edit size={14} />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteBandaBLocal(b.id)}
-                            className="bg-white border border-red-200 text-red-600 rounded-full w-7 h-7 flex items-center justify-center shadow"
-                            aria-label={`Excluir ${b.nome || 'Banda B'}`}
-                            title="Excluir"
-                          >
-                            <X size={14} />
-                          </button>
-                        </div>
-                      )}
+                      <div className="absolute right-3 top-3 flex gap-2">
+                        <button
+                          onClick={() => handleOpenEditBandaBLocal(b)}
+                          className="bg-white border border-blue-200 text-psd-blue rounded-full w-7 h-7 flex items-center justify-center shadow"
+                          aria-label={`Editar ${b.nome || 'Banda B'}`}
+                          title="Editar"
+                        >
+                          <Edit size={14} />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteBandaBLocal(b.id)}
+                          className="bg-white border border-red-200 text-red-600 rounded-full w-7 h-7 flex items-center justify-center shadow"
+                          aria-label={`Excluir ${b.nome || 'Banda B'}`}
+                          title="Excluir"
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
@@ -2941,43 +3361,39 @@ export default function MunicipioDetalhes() {
           <details className="group">
             <summary className="cursor-pointer flex items-center justify-between mb-4">
               <h2 className="text-xl font-bold text-psd-blue mb-0 text-center">Lideranças Locais</h2>
-              {userNivel !== 1 && (
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={handleOpenAddLideranca}
-                    className="bg-blue-600 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-blue-700"
-                    title="Adicionar liderança"
-                  >
-                    <Plus size={16} />
-                  </button>
-                </div>
-              )}
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleOpenAddLideranca}
+                  className="bg-blue-600 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-blue-700"
+                  title="Adicionar liderança"
+                >
+                  <Plus size={16} />
+                </button>
+              </div>
             </summary>
             <div className="mt-2">
               {liderancas && liderancas.length > 0 ? (
                 <div className="space-y-3 max-h-64 overflow-y-auto">
                   {liderancas.map((l) => (
                     <div key={l.id} className="border rounded-lg p-3 bg-blue-50 relative">
-                      {userNivel !== 1 && (
-                        <div className="absolute right-3 top-3 flex gap-2">
-                          <button
-                            onClick={() => handleOpenEditLideranca(l)}
-                            className="bg-white border border-blue-200 text-psd-blue rounded-full w-7 h-7 flex items-center justify-center shadow"
-                            aria-label={`Editar ${l.nome || 'liderança'}`}
-                            title="Editar"
-                          >
-                            <Edit size={14} />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteLideranca(l.id)}
-                            className="bg-white border border-red-200 text-red-600 rounded-full w-7 h-7 flex items-center justify-center shadow"
-                            aria-label={`Excluir ${l.nome || 'liderança'}`}
-                            title="Excluir"
-                          >
-                            <X size={14} />
-                          </button>
-                        </div>
-                      )}
+                      <div className="absolute right-3 top-3 flex gap-2">
+                        <button
+                          onClick={() => handleOpenEditLideranca(l)}
+                          className="bg-white border border-blue-200 text-psd-blue rounded-full w-7 h-7 flex items-center justify-center shadow"
+                          aria-label={`Editar ${l.nome || 'liderança'}`}
+                          title="Editar"
+                        >
+                          <Edit size={14} />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteLideranca(l.id)}
+                          className="bg-white border border-red-200 text-red-600 rounded-full w-7 h-7 flex items-center justify-center shadow"
+                          aria-label={`Excluir ${l.nome || 'liderança'}`}
+                          title="Excluir"
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
@@ -3019,43 +3435,39 @@ export default function MunicipioDetalhes() {
           <details className="group">
             <summary className="cursor-pointer flex items-center justify-between mb-4">
               <h2 className="text-xl font-bold text-psd-blue mb-0 text-center">Deputados Banda B</h2>
-              {userNivel !== 1 && (
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={handleOpenAddBandaB}
-                    className="bg-purple-600 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-purple-700"
-                    title="Adicionar deputado Banda B"
-                  >
-                    <Plus size={16} />
-                  </button>
-                </div>
-              )}
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handleOpenAddBandaB}
+                  className="bg-purple-600 text-white rounded-full w-8 h-8 flex items-center justify-center hover:bg-purple-700"
+                  title="Adicionar deputado Banda B"
+                >
+                  <Plus size={16} />
+                </button>
+              </div>
             </summary>
             <div className="mt-2">
               {bandaBPoliticos && bandaBPoliticos.length > 0 ? (
                 <div className="space-y-3 max-h-64 overflow-y-auto">
                   {bandaBPoliticos.map((b) => (
                     <div key={b.id} className="border rounded-lg p-3 bg-purple-50 relative">
-                      {userNivel !== 1 && (
-                        <div className="absolute right-3 top-3 flex gap-2">
-                          <button
-                            onClick={() => handleOpenEditBandaB(b)}
-                            className="bg-white border border-purple-200 text-purple-800 rounded-full w-7 h-7 flex items-center justify-center shadow"
-                            aria-label={`Editar ${b.nome || 'deputado Banda B'}`}
-                            title="Editar"
-                          >
-                            <Edit size={14} />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteBandaB(b.id)}
-                            className="bg-white border border-red-200 text-red-600 rounded-full w-7 h-7 flex items-center justify-center shadow"
-                            aria-label={`Excluir ${b.nome || 'deputado Banda B'}`}
-                            title="Excluir"
-                          >
-                            <X size={14} />
-                          </button>
-                        </div>
-                      )}
+                      <div className="absolute right-3 top-3 flex gap-2">
+                        <button
+                          onClick={() => handleOpenEditBandaB(b)}
+                          className="bg-white border border-purple-200 text-purple-800 rounded-full w-7 h-7 flex items-center justify-center shadow"
+                          aria-label={`Editar ${b.nome || 'deputado Banda B'}`}
+                          title="Editar"
+                        >
+                          <Edit size={14} />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteBandaB(b.id)}
+                          className="bg-white border border-red-200 text-red-600 rounded-full w-7 h-7 flex items-center justify-center shadow"
+                          aria-label={`Excluir ${b.nome || 'deputado Banda B'}`}
+                          title="Excluir"
+                        >
+                          <X size={14} />
+                        </button>
+                      </div>
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
@@ -3737,6 +4149,7 @@ export default function MunicipioDetalhes() {
               <option value="">Selecione...</option>
               <option value="primeira_dama">Primeira dama(o)</option>
               <option value="filho">Filho(a)</option>
+              
             </select>
 
             <label className="text-xs text-gray-600">Nome</label>

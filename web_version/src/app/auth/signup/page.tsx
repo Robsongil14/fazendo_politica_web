@@ -36,7 +36,7 @@ export default function SignupPage() {
       return
     }
 
-    try {
+  try {
       setLoading(true)
       setError('')
       
@@ -47,6 +47,8 @@ export default function SignupPage() {
           data: {
             name,
           },
+          // Após confirmar o email, redirecionar para a página de login
+          emailRedirectTo: `${typeof window !== 'undefined' ? window.location.origin : ''}/auth/login`,
         },
       })
       
@@ -55,6 +57,37 @@ export default function SignupPage() {
         return
       }
       
+      // Criar/atualizar perfil na tabela public.profiles via cliente Supabase (sem service role)
+      try {
+        const userId = data?.user?.id
+        if (userId) {
+          const profilePayload = {
+            id: userId,
+            full_name: typeof name === 'string' ? name : null,
+            role: 'viewer',
+            access_level: 1,
+            permissions: {
+              can_edit: false,
+              can_view: true,
+              is_admin: false,
+              can_manage_users: false,
+            },
+          }
+
+          // Política RLS permite INSERT quando id = auth.uid()
+          const { error: upsertError } = await supabase
+            .from('profiles')
+            .upsert(profilePayload, { onConflict: 'id' })
+
+          if (upsertError) {
+            console.warn('Falha ao criar/atualizar perfil:', upsertError)
+          }
+        }
+      } catch (e) {
+        // Não bloquear UX por falha no perfil; log para diagnóstico
+        console.warn('Erro inesperado ao criar perfil do usuário:', e)
+      }
+
       setSuccess(true)
       
       // Redirecionar após 3 segundos
@@ -99,7 +132,7 @@ export default function SignupPage() {
             <CheckCircle className="w-16 h-16 mb-4 text-green-500" />
             <h3 className="text-xl font-bold mb-2">Cadastro realizado!</h3>
             <p className="text-center mb-4">
-              Verifique seu email para confirmar sua conta.
+              Cadastro finalizado! Vá até seu email e clique no link de confirmação para autenticar sua conta.
             </p>
             <p className="text-sm text-center">
               Redirecionando para a página de login...

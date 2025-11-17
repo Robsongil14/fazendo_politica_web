@@ -41,7 +41,7 @@ export default function LoginPage() {
         return
       }
       
-      // Sucesso - o redirecionamento será feito pelo AuthContext
+      // Sucesso: sempre direciona para Municípios; acesso Admin via botão
       router.push('/municipios')
     } catch (error) {
       setError('Erro inesperado ao tentar fazer login.')

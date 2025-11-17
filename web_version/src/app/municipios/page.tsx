@@ -83,7 +83,7 @@ export default function MunicipiosPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const { signOut } = useAuth()
+  const { signOut, profile } = useAuth()
   const router = useRouter()
 
   useEffect(() => {
@@ -170,20 +170,31 @@ export default function MunicipiosPage() {
           <h1 className="text-3xl font-bold text-white mb-0">
             Municípios da Bahia
           </h1>
-          <button
-            onClick={async () => {
-              try {
-                await signOut()
-              } finally {
-                router.push('/auth/login')
-              }
-            }}
-            className="inline-flex items-center px-4 py-2 rounded-lg text-gray-800 font-bold shadow-md hover:shadow-lg transition-shadow"
-            style={{ backgroundColor: PSD_YELLOW }}
-          >
-            <LogOut className="w-4 h-4 mr-2" />
-            Sair
-          </button>
+          <div className="flex flex-col items-end gap-2">
+            <button
+              onClick={async () => {
+                try {
+                  await signOut()
+                } finally {
+                  router.push('/auth/login')
+                }
+              }}
+              className="inline-flex items-center px-4 py-2 rounded-lg text-gray-800 font-bold shadow-md hover:shadow-lg transition-shadow"
+              style={{ backgroundColor: PSD_YELLOW }}
+            >
+              <LogOut className="w-4 h-4 mr-2" />
+              Sair
+            </button>
+            {profile?.access_level === 4 || profile?.permissions?.is_admin ? (
+              <button
+                onClick={() => router.push('/admin/users')}
+                className="inline-flex items-center px-4 py-2 rounded-lg text-gray-800 font-bold shadow-md hover:shadow-lg transition-shadow"
+                style={{ backgroundColor: PSD_YELLOW }}
+              >
+                Administração
+              </button>
+            ) : null}
+          </div>
         </div>
 
         {/* Search */}
