@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "builds": [
-    { "src": "web_version/next.config.js", "use": "@vercel/next" }
-  ]
+  "buildCommand": "npm run build --prefix web_version",
+  "installCommand": "npm ci --prefix web_version",
+  "outputDirectory": "web_version/.vercel/output"
 }
