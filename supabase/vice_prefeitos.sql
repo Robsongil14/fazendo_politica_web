@@ -46,3 +46,11 @@ CREATE POLICY vice_prefeitos_update_authenticated
   TO authenticated
   USING (true)
   WITH CHECK (true);
+
+-- Permitir DELETE para usuários autenticados com nível >= 2
+DROP POLICY IF EXISTS vice_prefeitos_delete_min_level ON public.vice_prefeitos;
+CREATE POLICY vice_prefeitos_delete_min_level
+  ON public.vice_prefeitos
+  FOR DELETE
+  TO authenticated
+  USING (public.current_is_nivel(2));
