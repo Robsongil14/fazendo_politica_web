@@ -44,6 +44,10 @@ export default function SplashPage() {
         <p className="text-lg sm:text-xl md:text-2xl text-white/90 mb-8">
           Gestão Política da Bahia
         </p>
+        {/* Marcador de atualização para validar deploy */}
+        <p className="mt-2 text-xs sm:text-sm text-white/70">
+          Atualização de teste (commit 8ee2dfc)
+        </p>
         
         {/* Loading indicator */}
         <div className="flex justify-center">
